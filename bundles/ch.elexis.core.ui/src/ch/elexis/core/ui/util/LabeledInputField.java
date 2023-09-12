@@ -16,7 +16,9 @@ package ch.elexis.core.ui.util;
 import java.lang.reflect.InvocationTargetException;
 import java.text.DecimalFormat;
 import java.text.ParseException;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.beanutils.PropertyUtils;
@@ -38,6 +40,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.List;
+import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Text;
 import org.eclipse.ui.forms.widgets.ColumnLayout;
 import org.eclipse.ui.forms.widgets.FormToolkit;
@@ -70,6 +73,7 @@ import ch.rgw.tools.StringTool;
  */
 public class LabeledInputField extends Composite {
 	final static Logger logger = LoggerFactory.getLogger(LabeledInputField.class);
+	private static Set<InputData> modifiedInputDataSet = new HashSet<>();
 
 	/**
 	 *
@@ -130,8 +134,6 @@ public class LabeledInputField extends Composite {
 		switch (typ) {
 		case CHECKBOX:
 		case CHECKBOXTRISTATE:
-			// just a a spacer for nice alignment - label is shown behind the checkbox as
-			// usual
 			break;
 		default:
 			lbl.setText(label);
@@ -140,7 +142,7 @@ public class LabeledInputField extends Composite {
 
 		switch (typ) {
 		case LINK:
-			lbl.setForeground(UiDesk.getColorRegistry().get(UiDesk.COL_BLUE)); // $NON-NLS-1$
+			lbl.setForeground(UiDesk.getColorRegistry().get(UiDesk.COL_BLUE));
 			ctl = tk.createText(this, StringUtils.EMPTY, SWT.NONE);
 			ctl.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
 			break;
@@ -152,19 +154,19 @@ public class LabeledInputField extends Composite {
 			break;
 		case LIST:
 			ctl = new List(this, SWT.MULTI | SWT.BORDER);
-			ctl.setLayoutData(new GridData(GridData.FILL_BOTH/* |GridData.GRAB_VERTICAL */));
+			ctl.setLayoutData(new GridData(GridData.FILL_BOTH));
 			break;
 		case OBSOLETE_DATE:
-			logger.error("Please use nebula CDateTime instead!"); //$NON-NLS-1$
+			logger.error("Please use nebula CDateTime instead!");
 			break;
 		case COMBO:
 			ctl = new Combo(this, SWT.SINGLE | SWT.BORDER);
-			ctl.setLayoutData(new GridData(GridData.FILL_BOTH/* |GridData.GRAB_VERTICAL */));
+			ctl.setLayoutData(new GridData(GridData.FILL_BOTH));
 			break;
 		case COMBO_VIEWER:
 			viewer = new ComboViewer(this, SWT.SINGLE | SWT.BORDER);
 			ctl = viewer.getControl();
-			ctl.setLayoutData(new GridData(GridData.FILL_BOTH/* |GridData.GRAB_VERTICAL */));
+			ctl.setLayoutData(new GridData(GridData.FILL_BOTH));
 			break;
 		case CHECKBOX:
 			ctl = tk.createButton(this, label, SWT.CHECK);
@@ -202,7 +204,6 @@ public class LabeledInputField extends Composite {
 	 */
 	public void setText(String text) {
 		if (viewer != null) {
-			// handled by viewer
 			return;
 		}
 
@@ -212,7 +213,7 @@ public class LabeledInputField extends Composite {
 			List list = (List) ctl;
 			list.deselectAll();
 			if (!StringTool.isNothing(text)) {
-				String[] sel = text.split(","); //$NON-NLS-1$
+				String[] sel = text.split(",");
 				int[] selidx = new int[sel.length];
 				String[] items = list.getItems();
 				for (int i = 0; i < sel.length; i++) {
@@ -256,7 +257,6 @@ public class LabeledInputField extends Composite {
 		}
 
 		if (ctl instanceof Text) {
-			// for TEXT, MONEY, LINK, EXECLINK
 			return ((Text) ctl).getText();
 		} else if (ctl instanceof List) {
 			List list = (List) ctl;
@@ -564,7 +564,7 @@ public class LabeledInputField extends Composite {
 		InputData[] def;
 		Control[] cFields;
 		Object act;
-		DecimalFormat df = new DecimalFormat(Messages.LabeledInputField_7); // $NON-NLS-1$
+		DecimalFormat df = new DecimalFormat(Messages.LabeledInputField_7);
 		LabeledInputField ltf;
 
 		public AutoForm(Composite parent, InputData[] fields) {
@@ -633,11 +633,35 @@ public class LabeledInputField extends Composite {
 
 					@SuppressWarnings("unchecked")
 					public void focusLost(FocusEvent e) {
-						if (act != null) {
-							Control src = (Control) e.getSource();
-							InputData inp = (InputData) src.getData();
-							save(inp);
-						}
+						Control src = (Control) e.getSource();
+						InputData inp = (InputData) src.getData();
+
+						modifiedInputDataSet.add(inp);
+
+						src.getDisplay().asyncExec(new Runnable() {
+							@Override
+							public void run() {
+								Control newFocusControl = src.getDisplay().getFocusControl();
+
+								if (!(newFocusControl.getParent() instanceof LabeledInputField) && act != null) {
+									MessageBox dialog = new MessageBox(src.getShell(),
+											SWT.ICON_QUESTION | SWT.OK | SWT.CANCEL);
+									dialog.setText("Bestätigung");
+									dialog.setMessage("Möchten Sie die Daten speichern?");
+
+									int response = dialog.open();
+
+									if (response == SWT.OK) {
+										for (InputData modifiedInputData : modifiedInputDataSet) {
+											save(modifiedInputData);
+										}
+										modifiedInputDataSet.clear();
+									} else {
+										modifiedInputDataSet.clear();
+									}
+								}
+							}
+						});
 					}
 				});
 				cFields[i].setData(def[i]);
@@ -673,8 +697,7 @@ public class LabeledInputField extends Composite {
 					ExHandler.handle(e1);
 					val = StringUtils.EMPTY;
 				}
-				// double betr=Double.parseDouble(inp.getText())*100.0;
-				// val=Long.toString(Math.round(betr));
+
 				break;
 			case LIST:
 				val = inp.getText();
@@ -687,7 +710,6 @@ public class LabeledInputField extends Composite {
 				val = ((TristateCheckbox) (inp.mine.getControl())).getTristateDbValue();
 				break;
 			case HYPERLINK:
-				// dont try to save a hyperlink ...
 				return;
 			default:
 				break;
@@ -696,11 +718,10 @@ public class LabeledInputField extends Composite {
 				try {
 					set(act, inp.sFeldname, val);
 				} catch (PersistenceException pe) {
-					logger.error("Could not persist [" + val + "] for field [" + inp.sAnzeige + "]\nCause: " //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+					logger.error("Could not persist [" + val + "] for field [" + inp.sAnzeige + "]\nCause: "
 							+ pe.getCause().getMessage(), pe);
 
 					if (inp.tFeldTyp.equals(ch.elexis.core.ui.util.LabeledInputField.InputData.Typ.STRING)) {
-						// clear cache to always get the actual the DB value
 						PersistentObject.clearCache();
 						inp.mine.setText((String) get(act, inp.sFeldname));
 					}
@@ -736,7 +757,7 @@ public class LabeledInputField extends Composite {
 					BeanUtils.setProperty(object, field, value);
 				} catch (IllegalAccessException | InvocationTargetException e) {
 					LoggerFactory.getLogger(getClass())
-							.error("Error setting property [" + field + "] of [" + object + "]", e); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+							.error("Error setting property [" + field + "] of [" + object + "]", e);
 				}
 			}
 		}
@@ -749,7 +770,7 @@ public class LabeledInputField extends Composite {
 					return BeanUtils.getProperty(object, field);
 				} catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
 					LoggerFactory.getLogger(getClass())
-							.error("Error getting property [" + field + "] of [" + object + "]", e); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+							.error("Error getting property [" + field + "] of [" + object + "]", e);
 				}
 			}
 			return null;
@@ -766,7 +787,7 @@ public class LabeledInputField extends Composite {
 					}
 				} catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
 					LoggerFactory.getLogger(getClass())
-							.error("Error getting map property [" + field + "] of [" + object + "]", e); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+							.error("Error getting map property [" + field + "] of [" + object + "]", e);
 				}
 			}
 			return null;
@@ -780,7 +801,7 @@ public class LabeledInputField extends Composite {
 					PropertyUtils.setProperty(object, field, value);
 				} catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
 					LoggerFactory.getLogger(getClass())
-							.error("Error setting map property [" + field + "] of [" + object + "]", e); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+							.error("Error setting map property [" + field + "] of [" + object + "]", e);
 				}
 			}
 		}
@@ -811,11 +832,9 @@ public class LabeledInputField extends Composite {
 						Map ext = o.getMap(def[i].sFeldname);
 						val = (String) ext.get(def[i].sHashname);
 
-						// needed to make artikelstamm dialog work properly (without **ERROR:...)
 						if (val == null) {
 							val = o.get(def[i].sHashname);
 
-							// in case no value exists for this field keep it empty
 							if (val.startsWith(PersistentObject.MAPPING_ERROR_MARKER)) {
 								val = null;
 							}
@@ -837,9 +856,7 @@ public class LabeledInputField extends Composite {
 				case CURRENCY:
 					Money money = new Money(PersistentObject.checkZero(val));
 					def[i].setText(money.getAmountAsString());
-					// double betr=PersistentObject.checkZeroDouble(val);
 
-					// def[i].setText(Double.toString(betr/100.0));
 					break;
 				case CHECKBOX:
 					val = StringTool.unNull(val);
@@ -880,11 +897,9 @@ public class LabeledInputField extends Composite {
 						} else {
 							Map ext = getMap(o, def[i].sFeldname);
 							val = (String) ext.get(def[i].sHashname);
-							// needed to make artikelstamm dialog work properly (without **ERROR:...)
 							if (val == null) {
 								val = (String) get(o, def[i].sHashname);
 
-								// in case no value exists for this field keep it empty
 								if (val.startsWith(PersistentObject.MAPPING_ERROR_MARKER)) {
 									val = null;
 								}
@@ -905,8 +920,8 @@ public class LabeledInputField extends Composite {
 					def[i].setText(val);
 					break;
 				case CURRENCY:
-					if (val != null && (val.contains(",") || val.contains("."))) { //$NON-NLS-1$ //$NON-NLS-2$
-						val = val.replaceAll(",", "."); //$NON-NLS-1$ //$NON-NLS-2$
+					if (val != null && (val.contains(",") || val.contains("."))) {
+						val = val.replaceAll(",", ".");
 						Money money = new Money(PersistentObject.checkZeroDouble(val));
 						def[i].setText(money.getAmountAsString());
 					} else {

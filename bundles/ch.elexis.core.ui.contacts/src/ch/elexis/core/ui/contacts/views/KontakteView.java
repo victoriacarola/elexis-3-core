@@ -9,7 +9,6 @@
  *    G. Weirich - initial implementation
  *
  *******************************************************************************/
-
 package ch.elexis.core.ui.contacts.views;
 
 import java.util.HashMap;
@@ -72,9 +71,6 @@ public class KontakteView extends ViewPart implements ControlFieldListener {
 			Kontakt.FLD_ZIP + Query.EQUALS + Messages.Core_Postal_code, // $NON-NLS-1$
 			Kontakt.FLD_PLACE + Query.EQUALS + Messages.Core_City }; // $NON-NLS-1$
 	private ViewMenus menu;
-
-	public KontakteView() {
-	}
 
 	@Override
 	public void createPartControl(Composite parent) {
@@ -149,6 +145,7 @@ public class KontakteView extends ViewPart implements ControlFieldListener {
 			 */
 			if (element instanceof PersistentObject) {
 				// globally select this object
+
 				ElexisEventDispatcher.fireSelectionEvent((PersistentObject) element);
 			}
 		}
@@ -161,8 +158,7 @@ public class KontakteView extends ViewPart implements ControlFieldListener {
 	}
 
 	private void makeActions() {
-		delKontakt = new LockedRestrictedAction<Kontakt>(AccessControlDefaults.KONTAKT_DELETE,
-				Messages.Core_Delete) {
+		delKontakt = new LockedRestrictedAction<Kontakt>(AccessControlDefaults.KONTAKT_DELETE, Messages.Core_Delete) {
 			@Override
 			public void doRun(Kontakt k) {
 				if (SWTHelper.askYesNo("Wirklich löschen?", k.getLabel())) {
