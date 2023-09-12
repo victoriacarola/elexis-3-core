@@ -124,7 +124,7 @@ public class KontaktBlatt extends Composite implements IRefreshable, IUnlockable
 					Kontakt k = (Kontakt) po;
 					IXid xid = k.getXid();
 					String dom = Xid.getSimpleNameForXIDDomain(xid.getDomain());
-					sb.append(dom).append(": ").append(xid.getDomainId());
+					sb.append(dom).append(": ").append(xid.getDomainId()); //$NON-NLS-1$
 					ltf.setText(sb.toString());
 				}
 
@@ -135,9 +135,9 @@ public class KontaktBlatt extends Composite implements IRefreshable, IUnlockable
 						XIDDomain xd = Xid.getDomain(dom);
 						if ((k.istPerson() && xd.isDisplayedFor(Person.class))
 								|| (k.istOrganisation() && xd.isDisplayedFor(Organisation.class))) {
-							extFlds.add(Xid.getSimpleNameForXIDDomain(dom) + "=" + dom);
+							extFlds.add(Xid.getSimpleNameForXIDDomain(dom) + "=" + dom); //$NON-NLS-1$
 						} else if (k.istOrganisation() && xd.isDisplayedFor(Labor.class)) {
-							extFlds.add(Xid.getSimpleNameForXIDDomain(dom) + "=" + dom);
+							extFlds.add(Xid.getSimpleNameForXIDDomain(dom) + "=" + dom); //$NON-NLS-1$
 						}
 					}
 					KontaktExtDialog dlg = new KontaktExtDialog(UiDesk.getTopShell(),
@@ -193,14 +193,10 @@ public class KontaktBlatt extends Composite implements IRefreshable, IUnlockable
 		if (kontakt != null && kontakt.equals(actKontakt)) {
 
 			setUnlocked(false);
-			updateView();
 		} else {
 			setUnlocked(false);
 			setEnabled(false);
 		}
-	}
-
-	private void updateView() {
 	}
 
 	public KontaktBlatt(Composite parent, int style, IViewSite vs) {
@@ -247,17 +243,10 @@ public class KontaktBlatt extends Composite implements IRefreshable, IUnlockable
 			def[i].getWidget().getControl().addFocusListener(focusListener);
 		}
 
-		checkIfContactExistsListener = new Listener() {
-
-			@Override
-			public void handleEvent(Event event) {
-			}
-		};
-
 		Composite cAnschrift = tk.createComposite(body);
 		cAnschrift.setLayout(new GridLayout(2, false));
 		cAnschrift.setLayoutData(SWTHelper.getFillGridData(1, true, 1, false));
-		Hyperlink hAnschrift = tk.createHyperlink(cAnschrift, Messages.Core_Postal_Address, SWT.NONE);
+		Hyperlink hAnschrift = tk.createHyperlink(cAnschrift, Messages.Core_Postal_Address, SWT.NONE); // $NON-NLS-1$
 		hAnschrift.addHyperlinkListener(new HyperlinkAdapter() {
 
 			@Override
@@ -283,9 +272,9 @@ public class KontaktBlatt extends Composite implements IRefreshable, IUnlockable
 		tSex = def[3].getText();
 
 		Query<Kontakt> qbe = new Query<Kontakt>(Kontakt.class);
-		qbe.add(Kontakt.FLD_NAME1, "=", tName);
-		qbe.add(Kontakt.FLD_NAME2, "=", tVorname);
-		qbe.add(Patient.FLD_SEX, "=", tSex);
+		qbe.add(Kontakt.FLD_NAME1, "=", tName); //$NON-NLS-1$ //$NON-NLS-2$
+		qbe.add(Kontakt.FLD_NAME2, "=", tVorname); //$NON-NLS-1$ //$NON-NLS-2$
+		qbe.add(Patient.FLD_SEX, "=", tSex); //$NON-NLS-1$ //$NON-NLS-2$
 		List<Kontakt> contactList = qbe.execute();
 		return contactList;
 	}
@@ -305,19 +294,19 @@ public class KontaktBlatt extends Composite implements IRefreshable, IUnlockable
 			String type = (String) b.getData();
 
 			if (b.getSelection() == true) {
-				if (type.equals("istOrganisation")) {
-					select("1", "x", "0", "0", "x", "x");
+				if (type.equals("istOrganisation")) { //$NON-NLS-1$
+					select("1", "x", "0", "0", "x", "x"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
 					def[0].setLabel(BEZEICHNUNG);
 					def[1].setLabel(ZUSATZ);
 					def[2].setLabel(ANSPRECHPERSON);
 					def[3].setText(StringUtils.EMPTY);
 					def[10].setLabel(TEL_DIREKT);
 					setOrganisationFieldsVisible(true);
-				} else if (type.equals("istLabor")) {
-					select("1", "1", "0", "0", "0", "0");
+				} else if (type.equals("istLabor")) { //$NON-NLS-1$
+					select("1", "1", "0", "0", "0", "0"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
 					def[0].setLabel(BEZEICHNUNG);
 					def[1].setLabel(ZUSATZ);
-					def[2].setLabel(Messages.Core_Laboratory_Admin);
+					def[2].setLabel(Messages.Core_Laboratory_Admin); // $NON-NLS-1$
 					def[10].setLabel(TEL_DIREKT);
 				} else {
 					def[0].setLabel(NAME);
@@ -325,19 +314,19 @@ public class KontaktBlatt extends Composite implements IRefreshable, IUnlockable
 					def[2].setLabel(ZUSATZ);
 					def[10].setLabel(MOBIL);
 					setOrganisationFieldsVisible(false);
-					if ("istPerson".equals(type)) {
-						select("0", "0", "1", "x", "x", "x");
-					} else if (type.equals("istPatient")) {
-						select("0", "0", "1", "1", "x", "x");
-					} else if (type.equals(IS_USER)) {
-						select("0", "0", "1", "x", "1", "x");
-					} else if (type.equals("istMandant")) {
-						select("0", "0", "1", "x", "1", "1");
+					if ("istPerson".equals(type)) { //$NON-NLS-1$
+						select("0", "0", "1", "x", "x", "x"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
+					} else if (type.equals("istPatient")) { //$NON-NLS-1$
+						select("0", "0", "1", "1", "x", "x"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
+					} else if (type.equals(IS_USER)) { // $NON-NLS-1$
+						select("0", "0", "1", "x", "1", "x"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
+					} else if (type.equals("istMandant")) { //$NON-NLS-1$
+						select("0", "0", "1", "x", "1", "1"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$ //$NON-NLS-6$
 					}
 				}
 
 			} else {
-				actKontakt.set(type, "0");
+				actKontakt.set(type, "0"); //$NON-NLS-1$
 			}
 		}
 
@@ -345,7 +334,7 @@ public class KontaktBlatt extends Composite implements IRefreshable, IUnlockable
 			alTypes.clear();
 			alValues.clear();
 			for (int i = 0; i < fields.length; i++) {
-				if (fields[i].equals("x")) {
+				if (fields[i].equals("x")) { //$NON-NLS-1$
 					continue;
 				}
 				alTypes.add(types[i]);
