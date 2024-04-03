@@ -1084,8 +1084,6 @@ public class Messages extends NLS {
 	public static String Core_Stock;
 	public static String Core_Stock_Max_Articles_per_item;
 	public static String Core_Stock_Min_Articles_per_item;
-	public static String Core_Stock_delete_stock;
-	public static String CoreCore_Stock_delete_stock_dsc;
 	public static String Core_Street;
 	public static String Core_Subject;
 	public static String Core_Sum;
@@ -1835,6 +1833,7 @@ public class Messages extends NLS {
 	public static String FallDetailBlatt2_BillingMethod;
 	public static String FallDetailBlatt2_CantChangeBillingSystemBody;
 	public static String FallDetailBlatt2_ChangeBillingSystemNotAllowedBody;
+	public static String FallDetailBlatt2_Change_Invoice_System;
 	public static String FallDetailBlatt2_CopyToPatient;
 	public static String FallDetailBlatt2_DaysOrAfter;
 	public static String FallDetailBlatt2_DaysOrAfterNeg;
@@ -4295,7 +4294,6 @@ public class Messages extends NLS {
 	public static String StockManagementPreferencePage_delete_stock_dsc;
 	public static String StockManagementPreference_no_drivers;
 	public static String StockManagementPreferencePage_delete_stock;
-	public static String StockManagementPreference_select_owner;
 	public static String StockManagementPreference_select_stock_owner;
 	public static String StockManagementPreference_select_stock_owner_dsc;
 	public static String StockManagementPreference_select_stock_select_default_supplier;

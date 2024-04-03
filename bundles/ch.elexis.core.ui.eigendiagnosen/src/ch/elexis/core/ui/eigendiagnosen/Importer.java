@@ -13,6 +13,7 @@ package ch.elexis.core.ui.eigendiagnosen;
 
 import java.io.File;
 import java.io.FileReader;
+import java.util.Arrays;
 import java.util.List;
 
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -26,7 +27,7 @@ import ch.elexis.core.common.ElexisEventTopics;
 import ch.elexis.core.data.service.ContextServiceHolder;
 import ch.elexis.core.data.util.ResultAdapter;
 import ch.elexis.core.importer.div.importers.ExcelWrapper;
-import ch.elexis.core.model.IDiagnosis;
+import ch.elexis.core.model.ICustomDiagnosis;
 import ch.elexis.core.model.IDiagnosisTree;
 import ch.elexis.core.services.INamedQuery;
 import ch.elexis.core.ui.util.ImporterPage;
@@ -97,20 +98,21 @@ public class Importer extends ImporterPage {
 	}
 
 	@Override
-	public String getObjectClass() {
-		return IDiagnosis.class.getName();
+	public List<String> getObjectClass() {
+		return Arrays.asList(ICustomDiagnosis.class.getName());
 	}
+
 
 	private Result<String> importExcel(final String file, final IProgressMonitor mon) {
 		ExcelWrapper xl = new ExcelWrapper();
 		if (!xl.load(file, 0)) {
-			return new Result<String>(Result.SEVERITY.ERROR, 1, Messages.Eigendiagnosen_BadFileFormat, file, true);
+			return new Result<>(Result.SEVERITY.ERROR, 1, Messages.Eigendiagnosen_BadFileFormat, file, true);
 		}
 		for (int i = xl.getFirstRow(); i <= xl.getLastRow(); i++) {
 			List<String> row = xl.getRow(i);
 			importLine(row.toArray(new String[0]));
 		}
-		return new Result<String>("OK"); //$NON-NLS-1$
+		return new Result<>("OK"); //$NON-NLS-1$
 	}
 
 	private Result<String> importCSV(final String file, final IProgressMonitor mon) {
@@ -120,10 +122,10 @@ public class Importer extends ImporterPage {
 			while ((line = cr.readNext()) != null) {
 				importLine(line);
 			}
-			return new Result<String>("OK"); //$NON-NLS-1$
+			return new Result<>("OK"); //$NON-NLS-1$
 		} catch (Exception ex) {
 			ExHandler.handle(ex);
-			return new Result<String>(Result.SEVERITY.ERROR, 1, Messages.Eigendiagnosen_CantRead + file,
+			return new Result<>(Result.SEVERITY.ERROR, 1, Messages.Eigendiagnosen_CantRead + file,
 					ex.getMessage(), true);
 		}
 
