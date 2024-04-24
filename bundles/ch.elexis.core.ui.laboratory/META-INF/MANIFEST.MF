@@ -4,6 +4,10 @@ Bundle-Name: Elexis Core Laboratory
 Bundle-SymbolicName: ch.elexis.core.ui.laboratory;singleton:=true
 Bundle-Version: 3.12.0.qualifier
 Bundle-Activator: ch.elexis.core.ui.laboratory.Activator
+Bundle-ClassPath: lib/jfreechart-1.0.19-demo.jar,
+ lib/org.eclipse.swtchart_0.14.0.202301260747.jar,
+ lib/org.jfree.swtgraphics2d_1.1.0.jar,
+ .
 Bundle-Vendor: elexis.info
 Bundle-Localization: plugin
 Require-Bundle: ch.elexis.core.l10n;bundle-version="3.10.0",
@@ -13,7 +17,9 @@ Require-Bundle: ch.elexis.core.l10n;bundle-version="3.10.0",
  org.eclipse.ui,
  org.eclipse.ui.forms;bundle-version="3.5.200",
  ch.elexis.core.ui;bundle-version="3.0.0",
- ch.elexis.core.ui.icons;bundle-version="3.0.0"
+ ch.elexis.core.ui.icons;bundle-version="3.0.0",
+ org.jfree.chart,
+ org.jfree.chart-swt
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Bundle-ActivationPolicy: lazy
 Import-Package: ch.elexis.core.services.holder,
@@ -27,4 +33,6 @@ Export-Package: ch.elexis.core.ui.laboratory.actions,
  ch.elexis.core.ui.laboratory.controls,
  ch.elexis.core.ui.laboratory.dialogs,
  ch.elexis.core.ui.laboratory.laborlink,
- ch.elexis.core.ui.laboratory.views
+ ch.elexis.core.ui.laboratory.views,
+ org.eclipse.swtchart,
+ org.eclipse.swtchart.internal.axis

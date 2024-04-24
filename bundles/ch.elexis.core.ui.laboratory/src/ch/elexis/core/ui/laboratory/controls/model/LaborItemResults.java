@@ -52,4 +52,9 @@ public class LaborItemResults implements Comparable<LaborItemResults> {
 	public int compareTo(LaborItemResults o) {
 		return item.compareTo(o.getItem());
 	}
+
+	public LabResult[] getResults() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

@@ -66,6 +66,7 @@ import ch.elexis.core.ui.constants.ExtensionPointConstantsUi;
 import ch.elexis.core.ui.e4.util.CoreUiUtil;
 import ch.elexis.core.ui.events.RefreshingPartListener;
 import ch.elexis.core.ui.icons.Images;
+import ch.elexis.core.ui.laboratory.controls.LaborCompareComposite;
 import ch.elexis.core.ui.laboratory.controls.LaborOrdersComposite;
 import ch.elexis.core.ui.laboratory.controls.LaborResultsComposite;
 import ch.elexis.core.ui.laboratory.dialogs.LaborVerordnungDialog;
@@ -103,9 +104,10 @@ public class LaborView extends ViewPart implements IRefreshable {
 	private CTabFolder tabFolder;
 	private LaborResultsComposite resultsComposite;
 	private LaborOrdersComposite ordersComposite;
-
+	private LaborCompareComposite compareComposite;
+	private boolean isCompareActionEnabled = false; 
 	private Action fwdAction, backAction, printAction, importAction, xmlAction, newAction, newColumnAction,
-			refreshAction, expandAllAction, collapseAllAction;
+			refreshAction, expandAllAction, collapseAllAction, compareAction;
 	private ViewMenus menu;
 
 	private RefreshingPartListener udpateOnVisible = new RefreshingPartListener(this);
@@ -118,6 +120,10 @@ public class LaborView extends ViewPart implements IRefreshable {
 		CoreUiUtil.runAsyncIfActive(() -> {
 			ordersComposite.selectPatient((Patient) NoPoUtil.loadAsPersistentObject(patient));
 		}, tabFolder);
+		CoreUiUtil.runAsyncIfActive(() -> {
+			compareComposite.selectPatient((Patient) NoPoUtil.loadAsPersistentObject(patient));
+		}, tabFolder);
+
 	}
 
 	@Inject
@@ -159,17 +165,23 @@ public class LaborView extends ViewPart implements IRefreshable {
 		ordersComposite = new LaborOrdersComposite(tabFolder, SWT.NONE);
 		ordersTabItem.setControl(ordersComposite);
 
+		final CTabItem compareTabItem = new CTabItem(tabFolder, SWT.NULL);
+		compareTabItem.setText("Histogramm");
+		compareComposite = new LaborCompareComposite(tabFolder, SWT.NONE);
+		compareTabItem.setControl(compareComposite);
+
 		tabFolder.setSelection(0);
 		tabFolder.addSelectionListener(new SelectionAdapter() {
 			@Override
 			public void widgetSelected(SelectionEvent e) {
 				resultsComposite.reload();
 				ordersComposite.reload();
+				compareComposite.reload();
 			}
 		});
 		makeActions();
 		menu = new ViewMenus(getViewSite());
-		menu.createMenu(newAction, backAction, fwdAction, printAction, importAction, xmlAction);
+		menu.createMenu(newAction, backAction, fwdAction, printAction, importAction, xmlAction, compareAction);
 		// Orders
 		final LaborOrderPulldownMenuCreator menuCreator = new LaborOrderPulldownMenuCreator(parent.getShell());
 		if (menuCreator.getSelected() != null) {
@@ -204,6 +216,7 @@ public class LaborView extends ViewPart implements IRefreshable {
 		tm.add(expandAllAction);
 		tm.add(collapseAllAction);
 		tm.add(printAction);
+		tm.add(compareAction);
 
 		// register event listeners
 		Patient act = (Patient) ElexisEventDispatcher.getSelected(Patient.class);
@@ -357,6 +370,17 @@ public class LaborView extends ViewPart implements IRefreshable {
 				return Images.IMG_ARROWUP.getImageDescriptor();
 			}
 		};
+		compareAction = new Action(Messages.Compare_Values, IAction.AS_CHECK_BOX) {
+			@Override
+			public void run() {
+				isCompareActionEnabled = !isCompareActionEnabled; 
+				updateCompareActionIcon();
+				resultsComposite.toggleCheckboxes();
+				ordersComposite.reload();
+				compareComposite.reload();
+			}
+		};
+		updateCompareActionIcon();
 
 		newColumnAction.setImageDescriptor(Images.IMG_NEW.getImageDescriptor());
 		newAction.setImageDescriptor(Images.IMG_ADDITEM.getImageDescriptor());
@@ -365,6 +389,7 @@ public class LaborView extends ViewPart implements IRefreshable {
 		printAction.setImageDescriptor(Images.IMG_PRINTER.getImageDescriptor());
 		xmlAction.setImageDescriptor(Images.IMG_EXPORT.getImageDescriptor());
 		refreshAction.setImageDescriptor(Images.IMG_REFRESH.getImageDescriptor());
+		compareAction.setImageDescriptor(Images.IMG_AUSRUFEZ_ROT.getImageDescriptor());
 	}
 
 	public Document makeXML() {
@@ -480,6 +505,13 @@ public class LaborView extends ViewPart implements IRefreshable {
 	public void activation(final boolean mode) {
 	}
 
+	private void updateCompareActionIcon() {
+		if (isCompareActionEnabled) {
+			compareAction.setImageDescriptor(Images.IMG_CART.getImageDescriptor());
+		} else {
+			compareAction.setImageDescriptor(Images.IMG_AUSRUFEZ_ROT.getImageDescriptor());
+		}
+	}
 	@Optional
 	@Inject
 	public void setFixLayout(MPart part, @Named(Preferences.USR_FIX_LAYOUT) boolean currentState) {

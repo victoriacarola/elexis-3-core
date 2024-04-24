@@ -17,12 +17,21 @@ import org.eclipse.jface.viewers.TreeViewerFocusCellManager;
 import org.eclipse.jface.viewers.ViewerCell;
 import org.eclipse.jface.window.ToolTip;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.GC;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
 import org.eclipse.swt.widgets.TreeItem;
+import org.eclipse.swtchart.Chart;
+import org.eclipse.swtchart.ILineSeries;
+import org.eclipse.swtchart.ILineSeries.PlotSymbolType;
+import org.eclipse.swtchart.ISeries.SeriesType;
+import org.eclipse.swtchart.Range;
 import org.eclipse.ui.forms.widgets.Form;
 import org.eclipse.ui.forms.widgets.FormToolkit;
 
@@ -98,6 +107,10 @@ public class LaborResultsComposite extends Composite {
 		}
 	}
 
+	public String getToolTipText(Object element) {
+		return null;
+	}
+
 	private void createContent() {
 		setLayout(new GridLayout());
 		form = tk.createForm(this);
@@ -135,32 +148,66 @@ public class LaborResultsComposite extends Composite {
 		});
 		viewer.getControl().setMenu(mgr.createContextMenu(viewer.getControl()));
 
-		TreeViewerColumn column = new TreeViewerColumn(viewer, SWT.NONE);
-		column.getColumn().setWidth(200);
-		column.getColumn().setText(Messages.Core_Parameter);
-		column.setLabelProvider(new ColumnLabelProvider() {
+		TreeViewerColumn parameterColumn = new TreeViewerColumn(viewer, SWT.NONE);
+		parameterColumn.getColumn().setWidth(200);
+		parameterColumn.getColumn().setText(Messages.Core_Parameter);
+		parameterColumn.setLabelProvider(new ColumnLabelProvider() {
 			private StringBuilder sb = new StringBuilder();
 
 			@Override
 			public String getText(Object element) {
-				if (element instanceof String) {
-					String groupName = (String) element;
-					if ((groupName.length() > 2) && groupName.charAt(1) == ' ') {
-						groupName = groupName.substring(2);
-					}
-					return groupName;
-				} else if (element instanceof LaborItemResults) {
-					sb.setLength(0);
+				if (element instanceof LaborItemResults) {
 					ILabItem item = ((LaborItemResults) element).getFirstResult().getItem();
-					sb.append(item.getKuerzel()).append(" - ").append(item.getName()).append(" [") //$NON-NLS-1$ //$NON-NLS-2$
-							.append(item.getUnit()).append("]"); //$NON-NLS-1$
+					sb.setLength(0);
+					sb.append(item.getKuerzel()).append(" - ").append(item.getName()).append(" [")
+							.append(item.getUnit()).append("]");
 					return sb.toString();
 				}
 				return StringUtils.EMPTY;
 			}
+
+			@Override
+			public Image getToolTipImage(Object element) {
+				if (element instanceof LaborItemResults) {
+					return createChartToolTip((LaborItemResults) element);
+				}
+				return null;
+			}
+
+			private Image createChartToolTip(LaborItemResults results) {
+				Shell shell = new Shell(Display.getCurrent(), SWT.NO_TRIM);
+				Chart chart = new Chart(shell, SWT.NONE);
+				try {
+					chart.setBackground(Display.getCurrent().getSystemColor(SWT.COLOR_WHITE));
+					chart.setSize(200, 100);
+					chart.getAxisSet().getXAxis(0).getTitle().setText("Datum");
+					chart.getAxisSet().getYAxis(0).getTitle().setText("Wert");
+					chart.getAxisSet().getXAxis(0).setRange(new Range(1, 3));
+					chart.getAxisSet().getYAxis(0).setRange(new Range(0, 4));
+
+					ILineSeries series = (ILineSeries) chart.getSeriesSet().createSeries(SeriesType.LINE, "Messungen");
+					series.setYSeries(new double[] { 1.0, 2.0, 3.0 });
+					series.setXSeries(new double[] { 1.0, 2.0, 3.0 });
+					series.setSymbolType(PlotSymbolType.CIRCLE);
+					series.setSymbolSize(4);
+
+					chart.redraw();
+
+					shell.setSize(200, 100);
+					shell.open();
+					GC gc = new GC(chart);
+					Image image = new Image(Display.getCurrent(), 200, 100);
+					gc.copyArea(image, 0, 0);
+					gc.dispose();
+
+					return image;
+				} finally {
+					shell.dispose(); 
+				}
+			}
 		});
 
-		column = new TreeViewerColumn(viewer, SWT.NONE);
+		TreeViewerColumn column = new TreeViewerColumn(viewer, SWT.NONE);
 		column.getColumn().setWidth(100);
 		column.getColumn().setText(Messages.Core_Reference);
 		column.setLabelProvider(new ColumnLabelProvider() {
@@ -194,6 +241,26 @@ public class LaborResultsComposite extends Composite {
 			column.setLabelProvider(new LaborResultsLabelProvider(column));
 			column.getColumn().addSelectionListener(new ChangeResultsDateSelection(column, this));
 			resultColumns.add(column);
+		}
+	}
+
+	public void toggleCheckboxes() {
+		for (TreeItem item : viewer.getTree().getItems()) {
+			toggleItemCheckboxes(item, false); 
+			for (TreeItem subItem : item.getItems()) {
+				toggleItemCheckboxes(subItem, true);
+			}
+		}
+		viewer.refresh();
+	}
+
+	private void toggleItemCheckboxes(TreeItem item, boolean showCheckbox) {
+		item.setChecked(showCheckbox);
+		if (item.getChecked() && !showCheckbox) {
+			item.setChecked(false);
+		}
+		for (TreeItem subItem : item.getItems()) {
+			toggleItemCheckboxes(subItem, showCheckbox);
 		}
 	}
 

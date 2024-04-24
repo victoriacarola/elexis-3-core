@@ -32,6 +32,7 @@ public class Messages {
 	public static String GenericImporterBlatt_PleaseSelectType = ch.elexis.core.l10n.Messages.GenericImporterBlatt_PleaseSelectType;
 	public static String Core_Select_File = ch.elexis.core.l10n.Messages.Core_Select_File;
 	public static String Core_Update = ch.elexis.core.l10n.Messages.Core_Update;
+	public static String Compare_Values = ch.elexis.core.l10n.Messages.Compare_Values;
 	public static String GenericImporterBlatt_UpdateSelectedData = ch.elexis.core.l10n.Messages.GenericImporterBlatt_UpdateSelectedData;
 	public static String Core_Unable_to_read_file = ch.elexis.core.l10n.Messages.Core_Unable_to_read_file;
 	public static String HL7_Database = ch.elexis.core.l10n.Messages.HL7_Database;
