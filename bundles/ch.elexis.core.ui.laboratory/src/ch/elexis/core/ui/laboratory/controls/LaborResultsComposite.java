@@ -59,7 +59,6 @@ public class LaborResultsComposite extends Composite {
 	private Form form;
 
 	private Patient actPatient;
-
 	private TreeViewer viewer;
 	private TreeViewerFocusCellManager focusCell;
 

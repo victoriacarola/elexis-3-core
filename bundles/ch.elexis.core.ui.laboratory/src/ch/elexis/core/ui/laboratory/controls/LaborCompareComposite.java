@@ -100,7 +100,6 @@ public class LaborCompareComposite extends Composite {
 
 		Chart chart = new Chart(body, SWT.NONE);
 		chart.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
-
 		chart.getTitle().setText("Werte Vergleich");
 		chart.getAxisSet().getXAxis(0).getTitle().setText("Datum");
 		chart.getAxisSet().getYAxis(0).getTitle().setText("Wert");

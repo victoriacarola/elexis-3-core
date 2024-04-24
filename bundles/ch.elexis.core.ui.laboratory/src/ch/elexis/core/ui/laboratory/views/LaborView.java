@@ -503,6 +503,7 @@ public class LaborView extends ViewPart implements IRefreshable {
 	}
 
 	public void activation(final boolean mode) {
+
 	}
 
 	private void updateCompareActionIcon() {
