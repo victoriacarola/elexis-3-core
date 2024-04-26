@@ -216,13 +216,14 @@ public class LaborResultsComposite extends Composite {
 				Chart chart = new Chart(shell, SWT.NONE);
 				try {
 					chart.setBackground(Display.getCurrent().getSystemColor(SWT.COLOR_WHITE));
-					chart.setSize(200, 100);
+					chart.setSize(200, 200);
 					chart.getAxisSet().getXAxis(0).getTitle().setText("Datum");
 					chart.getAxisSet().getYAxis(0).getTitle().setText("Wert");
 					chart.getAxisSet().getXAxis(0).setRange(new Range(1, 3));
 					chart.getAxisSet().getYAxis(0).setRange(new Range(0, 4));
 
-					ILineSeries series = (ILineSeries) chart.getSeriesSet().createSeries(SeriesType.LINE, "Messungen");
+					ILineSeries series = (ILineSeries) chart.getSeriesSet().createSeries(SeriesType.LINE,
+							results.getFirstResult().getItem().getKuerzel());
 					series.setYSeries(new double[] { 1.0, 2.0, 3.0, 4.0, 5.0 });
 					series.setXSeries(new double[] { 1.0, 2.0, 3.0, 4.0, 5.0 });
 					series.setSymbolType(PlotSymbolType.CIRCLE);
@@ -230,16 +231,16 @@ public class LaborResultsComposite extends Composite {
 
 					chart.redraw();
 
-					shell.setSize(200, 100);
+					shell.setSize(200, 200);
 					shell.open();
 					GC gc = new GC(chart);
-					Image image = new Image(Display.getCurrent(), 200, 100);
+					Image image = new Image(Display.getCurrent(), 200, 200);
 					gc.copyArea(image, 0, 0);
 					gc.dispose();
 
 					return image;
 				} finally {
-					shell.dispose(); 
+					shell.dispose();
 				}
 			}
 		});
