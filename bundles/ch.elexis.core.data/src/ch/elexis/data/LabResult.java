@@ -1088,4 +1088,8 @@ public class LabResult extends PersistentObject implements ILabResult {
 		}
 	}
 
+	public Double getResultValue() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }

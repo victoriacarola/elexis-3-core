@@ -1,6 +1,7 @@
 package ch.elexis.core.ui.laboratory.controls;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -23,6 +24,7 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeColumn;
@@ -57,10 +59,12 @@ public class LaborResultsComposite extends Composite {
 
 	private final FormToolkit tk = UiDesk.getToolkit();
 	private Form form;
-
+	private HashMap<String, Double> selectedParameters = new HashMap<>();
 	private Patient actPatient;
 	private TreeViewer viewer;
 	private TreeViewerFocusCellManager focusCell;
+	private TreeViewerColumn checkboxColumn;
+	private List<TreeItem> checkedItems = new ArrayList<>();
 
 	private TreeViewerColumn newColumn;
 	private int newColumnIndex;
@@ -117,11 +121,45 @@ public class LaborResultsComposite extends Composite {
 		Composite body = form.getBody();
 		body.setLayout(new GridLayout());
 
-		viewer = new TreeViewer(body, SWT.FULL_SELECTION | SWT.LEFT | SWT.V_SCROLL | SWT.H_SCROLL);
+		viewer = new TreeViewer(body, SWT.CHECK | SWT.FULL_SELECTION | SWT.V_SCROLL | SWT.H_SCROLL);
 		viewer.getTree().setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 1, 1));
 		viewer.getTree().setHeaderVisible(true);
 		viewer.getTree().setLinesVisible(true);
 
+		viewer.getTree().addListener(SWT.Selection, event -> {
+			if (event.detail == SWT.CHECK) {
+				TreeItem item = (TreeItem) event.item;
+				boolean checked = item.getChecked();
+				if (checked && checkedItems.size() >= 5) {
+					item.setChecked(false);
+					MessageBox messageBox = new MessageBox(viewer.getControl().getShell(), SWT.ICON_WARNING | SWT.OK);
+					messageBox.setText("Achtung");
+					messageBox.setMessage("Es können jeweils nur 5 Parameterwerte miteinander verglichen werden.");
+					messageBox.open();
+					return;
+				}
+				if (checked) {
+					checkedItems.add(item);
+				} else {
+					checkedItems.remove(item);
+				}
+			}
+		});
+
+		checkboxColumn = new TreeViewerColumn(viewer, SWT.NONE);
+		checkboxColumn.getColumn().setWidth(0);
+		checkboxColumn.getColumn().setText("");
+		checkboxColumn.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(Object element) {
+				return null;
+			}
+
+			@Override
+			public Image getImage(Object element) {
+				return null;
+			}
+		});
 		viewer.setContentProvider(contentProvider);
 
 		ColumnViewerToolTipSupport.enableFor(viewer, ToolTip.NO_RECREATE);
@@ -147,7 +185,7 @@ public class LaborResultsComposite extends Composite {
 		});
 		viewer.getControl().setMenu(mgr.createContextMenu(viewer.getControl()));
 
-		TreeViewerColumn parameterColumn = new TreeViewerColumn(viewer, SWT.NONE);
+		TreeViewerColumn parameterColumn = new TreeViewerColumn(viewer, SWT.CHECK);
 		parameterColumn.getColumn().setWidth(200);
 		parameterColumn.getColumn().setText(Messages.Core_Parameter);
 		parameterColumn.setLabelProvider(new ColumnLabelProvider() {
@@ -185,8 +223,8 @@ public class LaborResultsComposite extends Composite {
 					chart.getAxisSet().getYAxis(0).setRange(new Range(0, 4));
 
 					ILineSeries series = (ILineSeries) chart.getSeriesSet().createSeries(SeriesType.LINE, "Messungen");
-					series.setYSeries(new double[] { 1.0, 2.0, 3.0 });
-					series.setXSeries(new double[] { 1.0, 2.0, 3.0 });
+					series.setYSeries(new double[] { 1.0, 2.0, 3.0, 4.0, 5.0 });
+					series.setXSeries(new double[] { 1.0, 2.0, 3.0, 4.0, 5.0 });
 					series.setSymbolType(PlotSymbolType.CIRCLE);
 					series.setSymbolSize(4);
 
@@ -247,7 +285,7 @@ public class LaborResultsComposite extends Composite {
 		for (TreeItem item : viewer.getTree().getItems()) {
 			toggleItemCheckboxes(item, false); 
 			for (TreeItem subItem : item.getItems()) {
-				toggleItemCheckboxes(subItem, true);
+				toggleItemCheckboxes(subItem, false);
 			}
 		}
 		viewer.refresh();
@@ -401,5 +439,13 @@ public class LaborResultsComposite extends Composite {
 		int[] ret = new int[1];
 		ret[0] = newColumnIndex;
 		return ret;
+	}
+
+	public void showCheckboxes(boolean show) {
+		if (show) {
+			checkboxColumn.getColumn().setWidth(70);
+		} else {
+			checkboxColumn.getColumn().setWidth(0);
+		}
 	}
 }

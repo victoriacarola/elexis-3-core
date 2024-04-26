@@ -1,9 +1,17 @@
 package ch.elexis.core.ui.laboratory.controls;
 
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 
+import org.eclipse.jface.action.Action;
+import org.eclipse.jface.action.ToolBarManager;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CTabFolder;
+import org.eclipse.swt.custom.CTabItem;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.layout.FillLayout;
@@ -23,13 +31,29 @@ import org.eclipse.ui.forms.widgets.Form;
 import org.eclipse.ui.forms.widgets.FormToolkit;
 
 import ch.elexis.core.ui.UiDesk;
+import ch.elexis.core.ui.laboratory.controls.model.LaborItemResults;
+import ch.elexis.core.ui.laboratory.controls.util.LaborItemResultsComparator;
+import ch.elexis.data.LabResult;
 import ch.elexis.data.Patient;
+import ch.rgw.tools.TimeTool;
 
 public class LaborCompareComposite extends Composite {
-
+	private HashMap<String, HashMap<String, HashMap<String, List<LabResult>>>> grouped;
+	private ArrayList<String> groups = new ArrayList<>();
 	private Form form;
 	private final FormToolkit tk = UiDesk.getToolkit();
+	private HashMap<String, LaborItemResults> itemResults = new HashMap<>();
 
+	private HashSet<String> dates = new HashSet<>();
+
+	public List<TimeTool> getDates() {
+		ArrayList<TimeTool> ret = new ArrayList<>();
+		for (String date : dates) {
+			ret.add(new TimeTool(date));
+		}
+		Collections.sort(ret);
+		return ret;
+	}
 	public LaborCompareComposite(CTabFolder tabFolder, int style) {
 		super(tabFolder, style);
 		createContent();
@@ -45,9 +69,9 @@ public class LaborCompareComposite extends Composite {
 	}
 
 	private void createContent() {
-		setLayout(new GridLayout());
-		form = tk.createForm(this);
-		form.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
+	    setLayout(new GridLayout());
+	    form = tk.createForm(this);
+	    form.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
 		Composite body = form.getBody();
 		body.setLayout(new GridLayout());
 
@@ -94,6 +118,24 @@ public class LaborCompareComposite extends Composite {
 			}
 		});
 
+		ToolBarManager toolBarManager = new ToolBarManager(SWT.FLAT);
+		Action closeAction = new Action("Schließen", SWT.NONE) {
+			@Override
+			public void run() {
+				CTabFolder tabFolder = (CTabFolder) getParent();
+				CTabItem[] items = tabFolder.getItems();
+				for (CTabItem item : items) {
+					if (item.getControl() == LaborCompareComposite.this) {
+						item.dispose();
+						break;
+					}
+				}
+			}
+		};
+		closeAction.setImageDescriptor(UiDesk.getImageDescriptor(UiDesk.IMG_DELETE));
+		toolBarManager.add(closeAction);
+		toolBarManager.createControl(form.getHead());
+
 		Button applyButton = new Button(body, SWT.PUSH);
 		applyButton.setText("Aktualisieren");
 		
@@ -123,10 +165,42 @@ public class LaborCompareComposite extends Composite {
 		chart.getAxisSet().getYAxis(0).setRange(new Range(yMin, yMax));
 
 		chart.getAxisSet().adjustRange();
-
-		body.layout();
 	}
 
+
+	public Object[] getElements(Object inputElement) {
+		return groups.toArray();
+	}
+
+	public Object[] getChildren(Object parentElement) {
+		if (parentElement instanceof String) {
+			HashMap<String, HashMap<String, List<LabResult>>> itemMap = grouped.get(parentElement);
+			ArrayList<LaborItemResults> ret = new ArrayList<>();
+			for (String item : itemMap.keySet()) {
+				if (itemResults.get(parentElement + "::" + item) != null) { //$NON-NLS-1$
+					ret.add(itemResults.get(parentElement + "::" + item)); //$NON-NLS-1$
+				}
+			}
+			Collections.sort(ret, new LaborItemResultsComparator());
+			return ret.toArray();
+		}
+		return null;
+	}
+
+	public Object getParent(Object element) {
+		return null;
+	}
+
+	public boolean hasChildren(Object element) {
+		if (element instanceof String) {
+			return grouped.get(element) != null && !grouped.get(element).isEmpty();
+		}
+		return false;
+	}
+	public void updateChart(ComparisonData data) {
+		double[] values = new double[] { data.getValue1(), data.getValue2(), data.getValue3(), data.getValue4(),
+				data.getValue5() };
+	}
 
 	private Calendar getDateFromDateTime(DateTime dateTime) {
 	    Calendar cal = Calendar.getInstance();

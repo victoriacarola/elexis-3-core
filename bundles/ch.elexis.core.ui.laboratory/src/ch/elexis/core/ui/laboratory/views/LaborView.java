@@ -43,6 +43,8 @@ import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.FileDialog;
+import org.eclipse.swt.widgets.MessageBox;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.part.ViewPart;
 import org.jdom2.Document;
@@ -105,10 +107,11 @@ public class LaborView extends ViewPart implements IRefreshable {
 	private LaborResultsComposite resultsComposite;
 	private LaborOrdersComposite ordersComposite;
 	private LaborCompareComposite compareComposite;
-	private boolean isCompareActionEnabled = false; 
+	private boolean isCompareActionEnabled = false;
 	private Action fwdAction, backAction, printAction, importAction, xmlAction, newAction, newColumnAction,
 			refreshAction, expandAllAction, collapseAllAction, compareAction;
 	private ViewMenus menu;
+	private CTabItem compareTabItem;
 
 	private RefreshingPartListener udpateOnVisible = new RefreshingPartListener(this);
 
@@ -165,7 +168,7 @@ public class LaborView extends ViewPart implements IRefreshable {
 		ordersComposite = new LaborOrdersComposite(tabFolder, SWT.NONE);
 		ordersTabItem.setControl(ordersComposite);
 
-		final CTabItem compareTabItem = new CTabItem(tabFolder, SWT.NULL);
+		final CTabItem compareTabItem = new CTabItem(tabFolder, SWT.NULL | SWT.CLOSE);
 		compareTabItem.setText("Histogramm");
 		compareComposite = new LaborCompareComposite(tabFolder, SWT.NONE);
 		compareTabItem.setControl(compareComposite);
@@ -371,14 +374,19 @@ public class LaborView extends ViewPart implements IRefreshable {
 			}
 		};
 		compareAction = new Action(Messages.Compare_Values, IAction.AS_CHECK_BOX) {
-			@Override
-			public void run() {
-				isCompareActionEnabled = !isCompareActionEnabled; 
-				updateCompareActionIcon();
-				resultsComposite.toggleCheckboxes();
-				ordersComposite.reload();
-				compareComposite.reload();
-			}
+		    @Override
+		    public void run() {
+		        isCompareActionEnabled = !isCompareActionEnabled; 
+		        updateCompareActionIcon();
+		        resultsComposite.toggleCheckboxes();
+		        ordersComposite.reload();
+		        compareComposite.reload();
+		        resultsComposite.showCheckboxes(isCompareActionEnabled);
+		        
+		        if (isCompareActionEnabled) {
+		            tabFolder.setSelection(tabFolder.indexOf(compareTabItem));
+		        }
+		    }
 		};
 		updateCompareActionIcon();
 
@@ -509,6 +517,12 @@ public class LaborView extends ViewPart implements IRefreshable {
 	private void updateCompareActionIcon() {
 		if (isCompareActionEnabled) {
 			compareAction.setImageDescriptor(Images.IMG_CART.getImageDescriptor());
+			Shell shell = Display.getCurrent().getActiveShell();
+			MessageBox messageBox = new MessageBox(shell, SWT.ICON_WARNING | SWT.OK);
+			messageBox.setText("Hilfe");
+			messageBox.setMessage(
+					"Sie befinden sich nun im Selektionsmodus, Sie dürfen maximal 5 Laborwerte gemeinsam vergleichen.");
+			messageBox.open();
 		} else {
 			compareAction.setImageDescriptor(Images.IMG_AUSRUFEZ_ROT.getImageDescriptor());
 		}
