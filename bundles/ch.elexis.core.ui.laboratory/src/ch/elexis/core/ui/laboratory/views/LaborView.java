@@ -43,8 +43,6 @@ import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.FileDialog;
-import org.eclipse.swt.widgets.MessageBox;
-import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.part.ViewPart;
 import org.jdom2.Document;
@@ -71,6 +69,7 @@ import ch.elexis.core.ui.icons.Images;
 import ch.elexis.core.ui.laboratory.controls.LaborCompareComposite;
 import ch.elexis.core.ui.laboratory.controls.LaborOrdersComposite;
 import ch.elexis.core.ui.laboratory.controls.LaborResultsComposite;
+import ch.elexis.core.ui.laboratory.controls.model.LaborItemResults;
 import ch.elexis.core.ui.laboratory.dialogs.LaborVerordnungDialog;
 import ch.elexis.core.ui.util.Importer;
 import ch.elexis.core.ui.util.Log;
@@ -102,18 +101,18 @@ public class LaborView extends ViewPart implements IRefreshable {
 
 	public static final String ID = "ch.elexis.Labor"; //$NON-NLS-1$
 	private static Log log = Log.get("LaborView"); //$NON-NLS-1$
-
+	private List<LaborItemResults> test66;
 	private CTabFolder tabFolder;
 	private LaborResultsComposite resultsComposite;
 	private LaborOrdersComposite ordersComposite;
 	private LaborCompareComposite compareComposite;
-	private boolean isCompareActionEnabled = false;
+	private List<LaborItemResults> selectedItems = new ArrayList<>();
 	private Action fwdAction, backAction, printAction, importAction, xmlAction, newAction, newColumnAction,
-			refreshAction, expandAllAction, collapseAllAction, compareAction;
+			refreshAction, expandAllAction, collapseAllAction, compareAction, selectAction;
 	private ViewMenus menu;
-	private CTabItem compareTabItem;
 
 	private RefreshingPartListener udpateOnVisible = new RefreshingPartListener(this);
+	protected boolean isCompareMode;
 
 	@Inject
 	void activePatient(@Optional IPatient patient) {
@@ -126,14 +125,13 @@ public class LaborView extends ViewPart implements IRefreshable {
 		CoreUiUtil.runAsyncIfActive(() -> {
 			compareComposite.selectPatient((Patient) NoPoUtil.loadAsPersistentObject(patient));
 		}, tabFolder);
-
 	}
 
 	@Inject
 	@Optional
 	public void reload(@UIEventTopic(ElexisEventTopics.EVENT_RELOAD) Class<?> clazz) {
-		if (resultsComposite != null && !resultsComposite.isDisposed() && ordersComposite != null
-				&& !ordersComposite.isDisposed()) {
+		if (resultsComposite != null && !resultsComposite.isDisposed() && !resultsComposite.isDisposed()
+				&& ordersComposite != null && !ordersComposite.isDisposed()) {
 			if (ILabItem.class.equals(clazz)) {
 				Display.getDefault().asyncExec(() -> {
 					resultsComposite.reload();
@@ -145,6 +143,11 @@ public class LaborView extends ViewPart implements IRefreshable {
 				});
 			} else if (ILabOrder.class.equals(clazz)) {
 				Display.getDefault().asyncExec(() -> {
+					ordersComposite.reload();
+				});
+			} else if (ILabResult.class.equals(clazz)) {
+				Display.getDefault().asyncExec(() -> {
+					resultsComposite.reload();
 					ordersComposite.reload();
 				});
 			}
@@ -160,7 +163,7 @@ public class LaborView extends ViewPart implements IRefreshable {
 
 		final CTabItem resultsTabItem = new CTabItem(tabFolder, SWT.NULL);
 		resultsTabItem.setText("Resultate");
-		resultsComposite = new LaborResultsComposite(tabFolder, SWT.NONE);
+		resultsComposite = new LaborResultsComposite(tabFolder, SWT.NONE, this);
 		resultsTabItem.setControl(resultsComposite);
 
 		final CTabItem ordersTabItem = new CTabItem(tabFolder, SWT.NULL);
@@ -168,7 +171,7 @@ public class LaborView extends ViewPart implements IRefreshable {
 		ordersComposite = new LaborOrdersComposite(tabFolder, SWT.NONE);
 		ordersTabItem.setControl(ordersComposite);
 
-		final CTabItem compareTabItem = new CTabItem(tabFolder, SWT.NULL | SWT.CLOSE);
+		final CTabItem compareTabItem = new CTabItem(tabFolder, SWT.NULL);
 		compareTabItem.setText("Histogramm");
 		compareComposite = new LaborCompareComposite(tabFolder, SWT.NONE);
 		compareTabItem.setControl(compareComposite);
@@ -184,7 +187,8 @@ public class LaborView extends ViewPart implements IRefreshable {
 		});
 		makeActions();
 		menu = new ViewMenus(getViewSite());
-		menu.createMenu(newAction, backAction, fwdAction, printAction, importAction, xmlAction, compareAction);
+		menu.createMenu(newAction, backAction, fwdAction, printAction, importAction, xmlAction, compareAction,
+				selectAction);
 		// Orders
 		final LaborOrderPulldownMenuCreator menuCreator = new LaborOrderPulldownMenuCreator(parent.getShell());
 		if (menuCreator.getSelected() != null) {
@@ -208,25 +212,43 @@ public class LaborView extends ViewPart implements IRefreshable {
 		for (IAction ac : importers) {
 			tm.add(ac);
 		}
-		if (!importers.isEmpty()) {
+		if (importers.size() > 0) {
 			tm.add(new Separator());
 		}
 		tm.add(refreshAction);
 		tm.add(newColumnAction);
+		tm.add(compareAction);
 		tm.add(newAction);
 		tm.add(backAction);
 		tm.add(fwdAction);
 		tm.add(expandAllAction);
 		tm.add(collapseAllAction);
 		tm.add(printAction);
-		tm.add(compareAction);
+		tm.add(selectAction);
 
 		// register event listeners
 		Patient act = (Patient) ElexisEventDispatcher.getSelected(Patient.class);
-		if ((act != null && act != resultsComposite.getPatient())) {
+		if ((act != null && act != resultsComposite.getPatient() && act != resultsComposite.getPatient())) {
 			resultsComposite.selectPatient(act);
 		}
 		getSite().getPage().addPartListener(udpateOnVisible);
+	}
+
+	public void receiveSelectedResultsFromResultsComposite(List<LaborItemResults> selectedResults) {
+		if (compareComposite != null && !compareComposite.isDisposed()) {
+			compareComposite.receiveSelectedResults(selectedResults);
+			compareComposite.updateChartData(selectedResults);
+		}
+	}
+
+	public void receiveSelectedResults(List<LaborItemResults> selectedResults) {
+		this.test66 = new ArrayList<>(selectedResults);
+		selectedItems.clear();
+		if (selectedResults != null) {
+			this.selectedItems.addAll(new ArrayList<>(test66));
+		}
+		System.out.println("Nach dem Hinzufügen: " + this.selectedItems);
+
 	}
 
 	@Override
@@ -241,6 +263,8 @@ public class LaborView extends ViewPart implements IRefreshable {
 			resultsComposite.setFocus();
 		} else if (ordersComposite.isVisible()) {
 			ordersComposite.setFocus();
+		} else if (compareComposite.isVisible()) {
+			compareComposite.setFocus();
 		}
 	}
 
@@ -276,6 +300,37 @@ public class LaborView extends ViewPart implements IRefreshable {
 							resultsComposite.getSkipIndex());
 				} catch (Exception ex) {
 					ExHandler.handle(ex);
+				}
+			}
+		};
+		compareAction = new Action("Vergleichen") {
+			@Override
+			public void run() {
+				isCompareMode = !isCompareMode;
+
+				setCheckboxVisibility(isCompareMode);
+
+				if (isCompareMode) {
+					setText("Ausgewählte Werte vergleichen");
+					setImageDescriptor(Images.IMG_ACHTUNG.getImageDescriptor());
+				} else {
+					performSelectAction();
+					setText("Vergleichen");
+					setImageDescriptor(Images.IMG_CART.getImageDescriptor());
+					isCompareMode = true;
+				}
+			}
+		};
+
+
+		selectAction = new Action("Ausgewählte Werte vergleichen") {
+			@Override
+			public void run() {
+				for (int i = 0; i < tabFolder.getItemCount(); i++) {
+					if (tabFolder.getItem(i).getText().equals("Histogramm")) {
+						tabFolder.setSelection(i);
+						break;
+					}
 				}
 			}
 		};
@@ -345,6 +400,7 @@ public class LaborView extends ViewPart implements IRefreshable {
 			public void run() {
 				resultsComposite.reload();
 				ordersComposite.reload();
+				compareComposite.reload();
 			}
 		};
 		expandAllAction = new Action(Messages.LaborView_expand_all) {
@@ -373,22 +429,6 @@ public class LaborView extends ViewPart implements IRefreshable {
 				return Images.IMG_ARROWUP.getImageDescriptor();
 			}
 		};
-		compareAction = new Action(Messages.Compare_Values, IAction.AS_CHECK_BOX) {
-		    @Override
-		    public void run() {
-		        isCompareActionEnabled = !isCompareActionEnabled; 
-		        updateCompareActionIcon();
-		        resultsComposite.toggleCheckboxes();
-		        ordersComposite.reload();
-		        compareComposite.reload();
-		        resultsComposite.showCheckboxes(isCompareActionEnabled);
-		        
-		        if (isCompareActionEnabled) {
-		            tabFolder.setSelection(tabFolder.indexOf(compareTabItem));
-		        }
-		    }
-		};
-		updateCompareActionIcon();
 
 		newColumnAction.setImageDescriptor(Images.IMG_NEW.getImageDescriptor());
 		newAction.setImageDescriptor(Images.IMG_ADDITEM.getImageDescriptor());
@@ -397,7 +437,12 @@ public class LaborView extends ViewPart implements IRefreshable {
 		printAction.setImageDescriptor(Images.IMG_PRINTER.getImageDescriptor());
 		xmlAction.setImageDescriptor(Images.IMG_EXPORT.getImageDescriptor());
 		refreshAction.setImageDescriptor(Images.IMG_REFRESH.getImageDescriptor());
-		compareAction.setImageDescriptor(Images.IMG_AUSRUFEZ_ROT.getImageDescriptor());
+		compareAction.setImageDescriptor(Images.IMG_CART.getImageDescriptor());
+		selectAction.setImageDescriptor(Images.IMG_ACHTUNG.getImageDescriptor());
+	}
+
+	protected void setCheckboxVisibility(boolean isCompareMode2) {
+		// TODO Auto-generated method stub
 	}
 
 	public Document makeXML() {
@@ -429,7 +474,7 @@ public class LaborView extends ViewPart implements IRefreshable {
 			}
 			r.addContent(Daten);
 
-			ArrayList<String> groupNames = new ArrayList<>();
+			ArrayList<String> groupNames = new ArrayList<String>();
 			groupNames.addAll(groupedResults.keySet());
 
 			for (String g : groupNames) {
@@ -442,7 +487,7 @@ public class LaborView extends ViewPart implements IRefreshable {
 					log.log("Ungültige Gruppe " + g, Log.WARNINGS); //$NON-NLS-1$
 					continue;
 				}
-				if (items.isEmpty()) {
+				if (items.size() == 0) {
 					continue;
 				}
 				for (LabItem it : items) {
@@ -481,7 +526,7 @@ public class LaborView extends ViewPart implements IRefreshable {
 
 	private List<LabItem> getItems(HashMap<String, HashMap<String, List<LabResult>>> itemMap) {
 		Set<String> keys = itemMap.keySet();
-		ArrayList<LabItem> ret = new ArrayList<>();
+		ArrayList<LabItem> ret = new ArrayList<LabItem>();
 		for (String string : keys) {
 			Collection<List<LabResult>> values = itemMap.get(string).values();
 			if (!values.isEmpty()) {
@@ -497,8 +542,8 @@ public class LaborView extends ViewPart implements IRefreshable {
 	}
 
 	public List<String> getDates(HashMap<String, HashMap<String, HashMap<String, List<LabResult>>>> map) {
-		ArrayList<String> ret = new ArrayList<>();
-		HashSet<String> dateStrings = new HashSet<>();
+		ArrayList<String> ret = new ArrayList<String>();
+		HashSet<String> dateStrings = new HashSet<String>();
 		for (String group : map.keySet()) {
 			HashMap<String, HashMap<String, List<LabResult>>> itemMap = map.get(group);
 			for (String item : itemMap.keySet()) {
@@ -510,23 +555,23 @@ public class LaborView extends ViewPart implements IRefreshable {
 		return ret;
 	}
 
-	public void activation(final boolean mode) {
-
+	private void performSelectAction() {
+		tabFolder.setSelection(findTabIndex("Histogramm"));
+		compareComposite.updateChartData(selectedItems);
 	}
 
-	private void updateCompareActionIcon() {
-		if (isCompareActionEnabled) {
-			compareAction.setImageDescriptor(Images.IMG_CART.getImageDescriptor());
-			Shell shell = Display.getCurrent().getActiveShell();
-			MessageBox messageBox = new MessageBox(shell, SWT.ICON_WARNING | SWT.OK);
-			messageBox.setText("Hilfe");
-			messageBox.setMessage(
-					"Sie befinden sich nun im Selektionsmodus, Sie dürfen maximal 5 Laborwerte gemeinsam vergleichen.");
-			messageBox.open();
-		} else {
-			compareAction.setImageDescriptor(Images.IMG_AUSRUFEZ_ROT.getImageDescriptor());
+	private int findTabIndex(String tabTitle) {
+		for (int i = 0; i < tabFolder.getItemCount(); i++) {
+			if (tabFolder.getItem(i).getText().equals(tabTitle)) {
+				return i;
+			}
 		}
+		return -1;
 	}
+
+	public void activation(final boolean mode) {
+	}
+
 	@Optional
 	@Inject
 	public void setFixLayout(MPart part, @Named(Preferences.USR_FIX_LAYOUT) boolean currentState) {

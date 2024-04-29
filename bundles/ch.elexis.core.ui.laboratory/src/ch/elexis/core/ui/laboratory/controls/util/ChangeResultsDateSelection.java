@@ -7,6 +7,7 @@ import org.eclipse.swt.events.SelectionEvent;
 
 import ch.elexis.core.data.events.ElexisEventDispatcher;
 import ch.elexis.core.ui.dialogs.DateTimeSelectorDialog;
+import ch.elexis.core.ui.laboratory.controls.LaborCompareComposite;
 import ch.elexis.core.ui.laboratory.controls.LaborResultsComposite;
 import ch.elexis.data.LabResult;
 import ch.rgw.tools.TimeTool;
@@ -21,6 +22,10 @@ public class ChangeResultsDateSelection extends SelectionAdapter {
 		this.composite = laborResultsComposite;
 	}
 
+	public ChangeResultsDateSelection(TreeViewerColumn column2, LaborCompareComposite laborCompareComposite) {
+		// TODO Auto-generated constructor stub
+	}
+
 	@Override
 	public void widgetSelected(SelectionEvent e) {
 		TimeTool date = (TimeTool) column.getColumn().getData(LaborResultsComposite.COLUMN_DATE_KEY);
@@ -30,6 +35,7 @@ public class ChangeResultsDateSelection extends SelectionAdapter {
 			TimeTool sel = dsd.getSelectedDate();
 			LabResult.changeObservationTime(ElexisEventDispatcher.getSelectedPatient(), date, sel);
 			composite.reload();
+			composite.addNewDate(sel);
 		}
 	}
 }

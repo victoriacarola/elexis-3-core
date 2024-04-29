@@ -6,6 +6,7 @@ import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 
 import ch.elexis.core.ui.dialogs.DateSelectorDialog;
+import ch.elexis.core.ui.laboratory.controls.LaborCompareComposite;
 import ch.elexis.core.ui.laboratory.controls.LaborResultsComposite;
 import ch.rgw.tools.TimeTool;
 
@@ -17,6 +18,10 @@ public class ChangeNewDateSelection extends SelectionAdapter {
 	public ChangeNewDateSelection(TreeViewerColumn column, LaborResultsComposite laborResultsComposite) {
 		this.column = column;
 		this.composite = laborResultsComposite;
+	}
+
+	public ChangeNewDateSelection(TreeViewerColumn newColumn, LaborCompareComposite laborCompareComposite) {
+		// TODO Auto-generated constructor stub
 	}
 
 	@Override

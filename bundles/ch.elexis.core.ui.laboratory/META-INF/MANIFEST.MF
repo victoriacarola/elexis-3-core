@@ -31,6 +31,7 @@ Import-Package: ch.elexis.core.services.holder,
  org.jdom2.output;version="2.0.6"
 Export-Package: ch.elexis.core.ui.laboratory.actions,
  ch.elexis.core.ui.laboratory.controls,
+ ch.elexis.core.ui.laboratory.controls.model,
  ch.elexis.core.ui.laboratory.dialogs,
  ch.elexis.core.ui.laboratory.laborlink,
  ch.elexis.core.ui.laboratory.views,
