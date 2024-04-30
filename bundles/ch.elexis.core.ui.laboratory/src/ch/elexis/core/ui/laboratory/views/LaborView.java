@@ -43,6 +43,7 @@ import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.FileDialog;
+import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.part.ViewPart;
 import org.jdom2.Document;
@@ -112,7 +113,7 @@ public class LaborView extends ViewPart implements IRefreshable {
 	private ViewMenus menu;
 
 	private RefreshingPartListener udpateOnVisible = new RefreshingPartListener(this);
-	protected boolean isCompareMode;
+	protected boolean isCompareMode = true;
 
 	@Inject
 	void activePatient(@Optional IPatient patient) {
@@ -122,9 +123,7 @@ public class LaborView extends ViewPart implements IRefreshable {
 		CoreUiUtil.runAsyncIfActive(() -> {
 			ordersComposite.selectPatient((Patient) NoPoUtil.loadAsPersistentObject(patient));
 		}, tabFolder);
-		CoreUiUtil.runAsyncIfActive(() -> {
-			compareComposite.selectPatient((Patient) NoPoUtil.loadAsPersistentObject(patient));
-		}, tabFolder);
+
 	}
 
 	@Inject
@@ -182,7 +181,7 @@ public class LaborView extends ViewPart implements IRefreshable {
 			public void widgetSelected(SelectionEvent e) {
 				resultsComposite.reload();
 				ordersComposite.reload();
-				compareComposite.reload();
+				resultsComposite.resetCheckboxSelection();
 			}
 		});
 		makeActions();
@@ -218,13 +217,14 @@ public class LaborView extends ViewPart implements IRefreshable {
 		tm.add(refreshAction);
 		tm.add(newColumnAction);
 		tm.add(compareAction);
+		tm.add(selectAction);
 		tm.add(newAction);
 		tm.add(backAction);
 		tm.add(fwdAction);
 		tm.add(expandAllAction);
 		tm.add(collapseAllAction);
 		tm.add(printAction);
-		tm.add(selectAction);
+
 
 		// register event listeners
 		Patient act = (Patient) ElexisEventDispatcher.getSelected(Patient.class);
@@ -237,18 +237,20 @@ public class LaborView extends ViewPart implements IRefreshable {
 	public void receiveSelectedResultsFromResultsComposite(List<LaborItemResults> selectedResults) {
 		if (compareComposite != null && !compareComposite.isDisposed()) {
 			compareComposite.receiveSelectedResults(selectedResults);
+			// Optional: Hier könnten Sie auch die Aktualisierung des Diagramms anstoßen
 			compareComposite.updateChartData(selectedResults);
 		}
 	}
 
 	public void receiveSelectedResults(List<LaborItemResults> selectedResults) {
-		this.test66 = new ArrayList<>(selectedResults);
+		this.test66 = new ArrayList<>(selectedResults); // Erstellt eine Kopie von selectedResults
 		selectedItems.clear();
 		if (selectedResults != null) {
-			this.selectedItems.addAll(new ArrayList<>(test66));
+			this.selectedItems.addAll(new ArrayList<>(test66)); // Fügt Kopie von selectedResults zu selectedItems hinzu
 		}
 		System.out.println("Nach dem Hinzufügen: " + this.selectedItems);
 
+		// Aktualisieren Sie das Diagramm mit den neuen Daten
 	}
 
 	@Override
@@ -272,6 +274,7 @@ public class LaborView extends ViewPart implements IRefreshable {
 	public void refresh() {
 		activePatient(ContextServiceHolder.get().getActivePatient().orElse(null));
 	}
+
 
 	private void makeActions() {
 		fwdAction = new Action(Messages.LaborView_nextPage) {
@@ -306,29 +309,39 @@ public class LaborView extends ViewPart implements IRefreshable {
 		compareAction = new Action("Vergleichen") {
 			@Override
 			public void run() {
-				isCompareMode = !isCompareMode;
-
-				setCheckboxVisibility(isCompareMode);
-
+				resultsComposite.showCheckboxes(isCompareMode);
 				if (isCompareMode) {
+					// Ändere das Aussehen und die Funktion zum "Select Action"
 					setText("Ausgewählte Werte vergleichen");
-					setImageDescriptor(Images.IMG_ACHTUNG.getImageDescriptor());
+					setImageDescriptor(Images.IMG_CHART_CURVE.getImageDescriptor());
+
+					// Zeige einen Dialog an, wenn in den Compare Mode gewechselt wird
+					MessageBox dialog = new MessageBox(Display.getCurrent().getActiveShell(),
+							SWT.ICON_INFORMATION | SWT.OK);
+					dialog.setText("Achtung");
+					dialog.setMessage("Sie sind jetzt im Selektionsmodus.");
+					dialog.open();
+
+					isCompareMode = false;
 				} else {
-					performSelectAction();
 					setText("Vergleichen");
-					setImageDescriptor(Images.IMG_CART.getImageDescriptor());
-					isCompareMode = true;
+					setImageDescriptor(Images.IMG_PLAY.getImageDescriptor());
+					isCompareMode = true; // Stellt sicher, dass der nächste Klick wieder in den Compare Mode wechseln
+
 				}
 			}
 		};
 
 
+
 		selectAction = new Action("Ausgewählte Werte vergleichen") {
 			@Override
 			public void run() {
+				// Setze den gewünschten Tab, der die LaborCompareComposite enthält
 				for (int i = 0; i < tabFolder.getItemCount(); i++) {
 					if (tabFolder.getItem(i).getText().equals("Histogramm")) {
 						tabFolder.setSelection(i);
+						resultsComposite.resetCheckboxSelection();
 						break;
 					}
 				}
@@ -400,7 +413,7 @@ public class LaborView extends ViewPart implements IRefreshable {
 			public void run() {
 				resultsComposite.reload();
 				ordersComposite.reload();
-				compareComposite.reload();
+//				compareComposite.reload();
 			}
 		};
 		expandAllAction = new Action(Messages.LaborView_expand_all) {
@@ -437,12 +450,13 @@ public class LaborView extends ViewPart implements IRefreshable {
 		printAction.setImageDescriptor(Images.IMG_PRINTER.getImageDescriptor());
 		xmlAction.setImageDescriptor(Images.IMG_EXPORT.getImageDescriptor());
 		refreshAction.setImageDescriptor(Images.IMG_REFRESH.getImageDescriptor());
-		compareAction.setImageDescriptor(Images.IMG_CART.getImageDescriptor());
-		selectAction.setImageDescriptor(Images.IMG_ACHTUNG.getImageDescriptor());
+		compareAction.setImageDescriptor(Images.IMG_CHART_CURVE.getImageDescriptor());
+		selectAction.setImageDescriptor(Images.IMG_PLAY.getImageDescriptor());
 	}
 
 	protected void setCheckboxVisibility(boolean isCompareMode2) {
 		// TODO Auto-generated method stub
+
 	}
 
 	public Document makeXML() {
@@ -556,6 +570,9 @@ public class LaborView extends ViewPart implements IRefreshable {
 	}
 
 	private void performSelectAction() {
+		// Logik für das Ausführen der "Select Action"
+		// Zum Beispiel die Histogramm-Ansicht aktualisieren oder was immer die
+		// gewünschte Aktion ist
 		tabFolder.setSelection(findTabIndex("Histogramm"));
 		compareComposite.updateChartData(selectedItems);
 	}
@@ -566,7 +583,7 @@ public class LaborView extends ViewPart implements IRefreshable {
 				return i;
 			}
 		}
-		return -1;
+		return -1; // Tab nicht gefunden
 	}
 
 	public void activation(final boolean mode) {

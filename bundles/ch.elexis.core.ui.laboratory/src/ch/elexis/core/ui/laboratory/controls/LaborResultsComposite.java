@@ -36,10 +36,7 @@ import org.eclipse.swt.events.FocusAdapter;
 import org.eclipse.swt.events.FocusEvent;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.events.MouseTrackAdapter;
-import org.eclipse.swt.events.PaintEvent;
-import org.eclipse.swt.events.PaintListener;
-import org.eclipse.swt.graphics.Color;
-import org.eclipse.swt.graphics.GC;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -78,7 +75,6 @@ public class LaborResultsComposite extends Composite {
 
 	public static final String ID = "ch.elexis.LaborResultsComposite"; //$NON-NLS-1$
 
-	private CheckboxTreeViewer checkboxViewer;
 	private final FormToolkit tk = UiDesk.getToolkit();
 	private Form form;
 	private Patient actPatient;
@@ -102,9 +98,11 @@ public class LaborResultsComposite extends Composite {
 	private static final int COLUMNS_PER_PAGE = 7;
 	private List<LaborItemResults> selectedResults = new ArrayList<>();
 	private List<LaborItemResults> items;
-	private AtomicInteger selectedCount;
+
 	private LaborView parentLaborView;
 	private boolean showCheckboxes = false;
+	private TreeViewerColumn checkboxColumn;
+	private AtomicInteger selectedCount = new AtomicInteger(0);
 
 	public void setItems(List<LaborItemResults> items) {
 		this.items = items;
@@ -171,15 +169,27 @@ public class LaborResultsComposite extends Composite {
 		checkboxViewer.getTree().setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 1, 1));
 		checkboxViewer.getTree().setHeaderVisible(true);
 		checkboxViewer.getTree().setLinesVisible(true);
+		checkboxColumn = new TreeViewerColumn(viewer, SWT.NONE);
+		checkboxColumn.getColumn().setWidth(0);
+		checkboxColumn.getColumn().setText("");
+		checkboxColumn.setLabelProvider(new ColumnLabelProvider() {
+			@Override
+			public String getText(Object element) {
+				return null;
+			}
 
-		AtomicInteger selectedCount = new AtomicInteger(0);
+			@Override
+			public Image getImage(Object element) {
+				return null;
+			}
+		});
+
 
 		checkboxViewer.addCheckStateListener(new ICheckStateListener() {
 			@Override
 			public void checkStateChanged(CheckStateChangedEvent event) {
 				Object element = event.getElement();
 				boolean hasChildren = ((ITreeContentProvider) checkboxViewer.getContentProvider()).hasChildren(element);
-
 				if (hasChildren) {
 					checkboxViewer.setChecked(element, false);
 				}
@@ -187,20 +197,17 @@ public class LaborResultsComposite extends Composite {
 					selectedCount.incrementAndGet();
 					if (selectedCount.get() > 5) {
 						selectedCount.decrementAndGet();
-
 						event.getCheckable().setChecked(event.getElement(), false);
-
 						MessageDialog.openInformation(getShell(), "Checkbox Limit",
 								"Es dürfen maximal 5 Parameter gleichzeitig verglichen werden");
 					} else {
-						selectedItems.add(event.getElement());
 
+						selectedItems.add(event.getElement());
 						sendSelectedResultsToLaborComparComposite();
 					}
 				} else {
 					selectedCount.decrementAndGet();
 					selectedItems.remove(event.getElement());
-
 					sendSelectedResultsToLaborComparComposite();
 				}
 			}
@@ -331,7 +338,6 @@ public class LaborResultsComposite extends Composite {
 
 		Shell parentShell = viewer.getControl().getShell();
 		chartPopup = new Shell(parentShell, SWT.NO_TRIM | SWT.TOOL | SWT.ON_TOP);
-
 		GridLayout gridLayout = new GridLayout();
 		gridLayout.numColumns = 1;
 		chartPopup.setLayout(gridLayout);
@@ -344,10 +350,10 @@ public class LaborResultsComposite extends Composite {
 		List<LabResult> labResults = new ArrayList<>(laborItemResults.getAllResults());
 		configureChart(chart, labResults);
 
-		chartPopup.setSize(400, 300); // Passen Sie diese Werte an Ihre Bedürfnisse an
+		chartPopup.setSize(400, 300);
 
 		Point location = parentShell.getDisplay().map(viewer.getControl(), null, e.x, e.y);
-		chartPopup.setLocation(location.x + 20, location.y + 20); // Anpassen der Position des Popups
+		chartPopup.setLocation(location.x + 20, location.y + 20);
 
 		chartPopup.open();
 	}
@@ -359,7 +365,6 @@ public class LaborResultsComposite extends Composite {
 		System.out.println(labResults);
 		List<Date> xSeriesList = new ArrayList<>();
 		List<Double> ySeriesList = new ArrayList<>();
-		List<String> rSeriesList = new ArrayList<>();
 
 		SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
 		for (LabResult result : lastSevenResults) {
@@ -375,28 +380,12 @@ public class LaborResultsComposite extends Composite {
 			}
 		}
 
-		chart.addPaintListener(new PaintListener() {
-			@Override
-			public void paintControl(PaintEvent e) {
 
-				GC gc = e.gc;
-				double referenzwert = getReferenzwertFürAktuellenParameter();
-				int yKoordinate = berechneYKoordinateAusReferenzwert(referenzwert, chart);
-				gc.setForeground(e.display.getSystemColor(SWT.COLOR_RED));
-			}
-		});
 		double[] xSeries = xSeriesList.stream().mapToDouble(Date::getTime).toArray();
 		double[] ySeries = ySeriesList.stream().mapToDouble(Double::doubleValue).toArray();
 
-		double[] xSeries2 = { xSeries[0], xSeries[xSeries.length - 1] };
-		double[] ySeries2 = { 85, 85 };
 
-		ILineSeries lineSeries2 = (ILineSeries) chart.getSeriesSet().createSeries(SeriesType.LINE, "Referenzwert");
-		lineSeries2.setYSeries(ySeries2);
-		lineSeries2.setXSeries(xSeries2);
-		lineSeries2.setLineStyle(LineStyle.SOLID);
-		lineSeries2.setLineColor(new Color(255, 0, 0, 50));
-		lineSeries2.setLineWidth(200);
+
 		ILineSeries lineSeries = (ILineSeries) chart.getSeriesSet().createSeries(SeriesType.LINE, "Parameterwert");
 		lineSeries.setYSeries(ySeries);
 		lineSeries.setXSeries(xSeries);
@@ -425,7 +414,7 @@ public class LaborResultsComposite extends Composite {
 		return 0;
 	}
 
-	protected double getReferenzwertFürAktuellenParameter() {
+	protected double getReferenzwertFuerAktuellenParameter() {
 		// TODO Auto-generated method stub
 		return 0;
 	}
@@ -590,10 +579,13 @@ public class LaborResultsComposite extends Composite {
 		}
 	}
 
-	private void resetCheckboxSelection() {
+	public void resetCheckboxSelection() {
+		if (selectedCount == null) {
+			selectedCount = new AtomicInteger(0);
+		}
 		if (viewer instanceof CheckboxTreeViewer) {
 			CheckboxTreeViewer checkboxViewer = (CheckboxTreeViewer) viewer;
-			checkboxViewer.setAllChecked(false);
+			checkboxViewer.setSubtreeChecked(checkboxViewer, false);
 
 			selectedCount.set(0);
 			selectedItems.clear();
@@ -609,21 +601,29 @@ public class LaborResultsComposite extends Composite {
 				Point point = new Point(e.x, e.y);
 				TreeItem item = viewer.getTree().getItem(point);
 				if (item != null) {
-					// Popup mit Chart anzeigen, basierend auf den Daten des ausgewählten TreeItem
 					createChartPopup(item, e);
 				}
 			}
 
 		});
 
-		chartPopup.addFocusListener(new FocusAdapter() {
-			@Override
-			public void focusLost(FocusEvent e) {
-				if (chartPopup != null && !chartPopup.isDisposed()) {
-					chartPopup.dispose();
+		if (this.chartPopup != null) {
+			chartPopup.addFocusListener(new FocusAdapter() {
+				@Override
+				public void focusLost(FocusEvent e) {
+					if (chartPopup != null && !chartPopup.isDisposed()) {
+						chartPopup.dispose();
+					}
 				}
-			}
-		});
+			});
+		}
 	}
 
+	public void showCheckboxes(boolean show) {
+		if (show) {
+			checkboxColumn.getColumn().setWidth(70);
+		} else {
+			checkboxColumn.getColumn().setWidth(0);
+		}
+	}
 }

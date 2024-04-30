@@ -54,6 +54,8 @@ public enum Images {
 	IMG_VERSIONEDETIKETTE,
 	/** a bomb icon */
 	IMG_BOMB,
+	/** Line Chart picture **/
+	IMG_CHART_CURVE,
 	/** an organisation icon */
 	IMG_ORGANISATION,
 	/** an organisation add icon */
@@ -205,6 +207,8 @@ public enum Images {
 	IMG_PERSPECTIVE_BBS,
 	/** Perspective orders */
 	IMG_PERSPECTIVE_ORDERS,
+	/** Play button **/
+	IMG_PLAY,
 	/** a document of type pdf */
 	IMG_DOCUMENT_PDF,
 	/** a document of type text */
