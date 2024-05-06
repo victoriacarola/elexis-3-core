@@ -105,6 +105,4 @@ public class LaborItemResults implements Comparable<LaborItemResults> {
 		});
 		return sb.toString();
 	}
-
-	
 }

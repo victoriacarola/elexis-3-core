@@ -1,3 +1,12 @@
+/**
+ * Diese Klasse repräsentiert die Vergleichsdaten für Laborergebnisse.
+ * Sie enthält fünf Werte sowie entsprechende Checkbox-Zustände für den Vergleich.
+ * 
+ * @author  Victoria Carola Adolph
+ * @version 1.0
+ * @since   06.05.2024
+ */
+
 package ch.elexis.core.ui.laboratory.controls.model;
 
 public class ComparisonData {

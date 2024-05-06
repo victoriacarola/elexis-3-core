@@ -7,7 +7,11 @@ Bundle-Activator: ch.elexis.core.ui.laboratory.Activator
 Bundle-ClassPath: lib/jfreechart-1.0.19-demo.jar,
  lib/org.eclipse.swtchart_0.14.0.202301260747.jar,
  lib/org.jfree.swtgraphics2d_1.1.0.jar,
- .
+ .,
+ lib/greenmail-junit4-1.6.2.jar,
+ lib/mockito-core-4.8.1.jar,
+ lib/junit-jupiter-api-5.3.1.jar,
+ lib/junit-jupiter-engine-5.11.0-M1.jar
 Bundle-Vendor: elexis.info
 Bundle-Localization: plugin
 Require-Bundle: ch.elexis.core.l10n;bundle-version="3.10.0",
@@ -19,7 +23,8 @@ Require-Bundle: ch.elexis.core.l10n;bundle-version="3.10.0",
  ch.elexis.core.ui;bundle-version="3.0.0",
  ch.elexis.core.ui.icons;bundle-version="3.0.0",
  org.jfree.chart,
- org.jfree.chart-swt
+ org.jfree.chart-swt,
+ org.junit
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Bundle-ActivationPolicy: lazy
 Import-Package: ch.elexis.core.services.holder,

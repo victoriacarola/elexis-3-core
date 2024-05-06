@@ -51,6 +51,7 @@ import org.eclipse.swtchart.ISeries.SeriesType;
 import org.eclipse.swtchart.LineStyle;
 import org.eclipse.ui.forms.widgets.Form;
 import org.eclipse.ui.forms.widgets.FormToolkit;
+import org.hamcrest.Matcher;
 
 import ch.elexis.core.data.interfaces.ILabItem;
 import ch.elexis.core.ui.UiDesk;
@@ -79,7 +80,7 @@ public class LaborResultsComposite extends Composite {
 	private Form form;
 	private Patient actPatient;
 	private List<Object> selectedItems = new ArrayList<>();
-	private TreeViewer viewer;
+	public TreeViewer viewer;
 	private TreeViewerFocusCellManager focusCell;
 	private LinkedList<TimeTool> lastSixDates = new LinkedList<>();
 
@@ -100,7 +101,6 @@ public class LaborResultsComposite extends Composite {
 	private List<LaborItemResults> items;
 
 	private LaborView parentLaborView;
-	private boolean showCheckboxes = false;
 	private TreeViewerColumn checkboxColumn;
 	private AtomicInteger selectedCount = new AtomicInteger(0);
 
@@ -331,7 +331,7 @@ public class LaborResultsComposite extends Composite {
 		});
 	}
 
-	private void createChartPopup(TreeItem item, MouseEvent e) {
+	public void createChartPopup(TreeItem item, MouseEvent e) {
 		if (chartPopup != null && !chartPopup.isDisposed()) {
 			chartPopup.dispose();
 		}
@@ -358,11 +358,10 @@ public class LaborResultsComposite extends Composite {
 		chartPopup.open();
 	}
 
-	private void configureChart(Chart chart, List<LabResult> labResults) {
+	public void configureChart(Chart chart, List<LabResult> labResults) {
 		labResults.sort(Comparator.comparing(LabResult::getDate));
 		int startIndex = Math.max(0, labResults.size() - 7);
 		List<LabResult> lastSevenResults = labResults.subList(startIndex, labResults.size());
-		System.out.println(labResults);
 		List<Date> xSeriesList = new ArrayList<>();
 		List<Double> ySeriesList = new ArrayList<>();
 
@@ -386,7 +385,8 @@ public class LaborResultsComposite extends Composite {
 
 
 
-		ILineSeries lineSeries = (ILineSeries) chart.getSeriesSet().createSeries(SeriesType.LINE, "Parameterwert");
+		ILineSeries<?> lineSeries = (ILineSeries<?>) chart.getSeriesSet().createSeries(SeriesType.LINE,
+				"Parameterwert");
 		lineSeries.setYSeries(ySeries);
 		lineSeries.setXSeries(xSeries);
 		lineSeries.setLineStyle(LineStyle.SOLID);
@@ -626,4 +626,20 @@ public class LaborResultsComposite extends Composite {
 			checkboxColumn.getColumn().setWidth(0);
 		}
 	}
+
+	public void mouseHover(MouseEvent mockEvent) {
+		// TODO Auto-generated method stub
+
+	}
+
+	public void configureChart(Matcher<Chart> any, Object anyListOf) {
+		// TODO Auto-generated method stub
+
+	}
+
+	public void init() {
+		// TODO Auto-generated method stub
+
+	}
+
 }

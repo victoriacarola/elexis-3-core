@@ -39,11 +39,15 @@ import org.eclipse.swt.custom.CTabFolder;
 import org.eclipse.swt.custom.CTabItem;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.FillLayout;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.FileDialog;
-import org.eclipse.swt.widgets.MessageBox;
+import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.part.ViewPart;
 import org.jdom2.Document;
@@ -102,7 +106,7 @@ public class LaborView extends ViewPart implements IRefreshable {
 
 	public static final String ID = "ch.elexis.Labor"; //$NON-NLS-1$
 	private static Log log = Log.get("LaborView"); //$NON-NLS-1$
-	private List<LaborItemResults> test66;
+	private List<LaborItemResults> Laborwert;
 	private CTabFolder tabFolder;
 	private LaborResultsComposite resultsComposite;
 	private LaborOrdersComposite ordersComposite;
@@ -170,7 +174,7 @@ public class LaborView extends ViewPart implements IRefreshable {
 		ordersComposite = new LaborOrdersComposite(tabFolder, SWT.NONE);
 		ordersTabItem.setControl(ordersComposite);
 
-		final CTabItem compareTabItem = new CTabItem(tabFolder, SWT.NULL);
+		final CTabItem compareTabItem = new CTabItem(tabFolder, SWT.NULL | SWT.CLOSE);
 		compareTabItem.setText("Histogramm");
 		compareComposite = new LaborCompareComposite(tabFolder, SWT.NONE);
 		compareTabItem.setControl(compareComposite);
@@ -243,14 +247,12 @@ public class LaborView extends ViewPart implements IRefreshable {
 	}
 
 	public void receiveSelectedResults(List<LaborItemResults> selectedResults) {
-		this.test66 = new ArrayList<>(selectedResults); // Erstellt eine Kopie von selectedResults
+		this.Laborwert = new ArrayList<>(selectedResults);
 		selectedItems.clear();
 		if (selectedResults != null) {
-			this.selectedItems.addAll(new ArrayList<>(test66)); // Fügt Kopie von selectedResults zu selectedItems hinzu
+			this.selectedItems.addAll(new ArrayList<>(Laborwert));
 		}
-		System.out.println("Nach dem Hinzufügen: " + this.selectedItems);
 
-		// Aktualisieren Sie das Diagramm mit den neuen Daten
 	}
 
 	@Override
@@ -306,38 +308,51 @@ public class LaborView extends ViewPart implements IRefreshable {
 				}
 			}
 		};
-		compareAction = new Action("Vergleichen") {
+		compareAction = new Action("Werte auswählen") {
 			@Override
 			public void run() {
 				resultsComposite.showCheckboxes(isCompareMode);
 				if (isCompareMode) {
-					// Ändere das Aussehen und die Funktion zum "Select Action"
-					setText("Ausgewählte Werte vergleichen");
 					setImageDescriptor(Images.IMG_CHART_CURVE.getImageDescriptor());
 
-					// Zeige einen Dialog an, wenn in den Compare Mode gewechselt wird
-					MessageBox dialog = new MessageBox(Display.getCurrent().getActiveShell(),
-							SWT.ICON_INFORMATION | SWT.OK);
-					dialog.setText("Achtung");
-					dialog.setMessage("Sie sind jetzt im Selektionsmodus.");
-					dialog.open();
+					final Shell dialogShell = new Shell(Display.getCurrent().getActiveShell(),
+							SWT.DIALOG_TRIM | SWT.APPLICATION_MODAL);
+					dialogShell.setText("Achtung!");
+					dialogShell.setLayout(new GridLayout(1, false));
+
+					Label messageLabel = new Label(dialogShell, SWT.NONE);
+					messageLabel
+							.setText(
+									"Sie befinden sich jetzt im Selektionsmodus. Sie dürfen maximal 5 Parameter miteinander Vergleichen.");
+					messageLabel.setLayoutData(new GridData(SWT.CENTER, SWT.CENTER, true, true));
+
+					dialogShell.pack();
+					dialogShell.setSize(600, 100);
+					Rectangle screenSize = Display.getCurrent().getPrimaryMonitor().getBounds();
+					int x = (screenSize.width - dialogShell.getSize().x) / 2;
+					int y = (screenSize.height - dialogShell.getSize().y) / 2;
+					dialogShell.open();
+
+					Display.getCurrent().timerExec(4700, new Runnable() {
+						public void run() {
+							if (!dialogShell.isDisposed()) {
+								dialogShell.close();
+							}
+						}
+					});
 
 					isCompareMode = false;
 				} else {
 					setText("Vergleichen");
 					setImageDescriptor(Images.IMG_PLAY.getImageDescriptor());
-					isCompareMode = true; // Stellt sicher, dass der nächste Klick wieder in den Compare Mode wechseln
-
+					isCompareMode = true; // Stellt sicher, dass der nächste Klick wieder in den Compare Mode wechselt
 				}
 			}
 		};
 
-
-
 		selectAction = new Action("Ausgewählte Werte vergleichen") {
 			@Override
 			public void run() {
-				// Setze den gewünschten Tab, der die LaborCompareComposite enthält
 				for (int i = 0; i < tabFolder.getItemCount(); i++) {
 					if (tabFolder.getItem(i).getText().equals("Histogramm")) {
 						tabFolder.setSelection(i);

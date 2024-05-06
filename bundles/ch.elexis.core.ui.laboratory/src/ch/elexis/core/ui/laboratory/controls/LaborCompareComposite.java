@@ -1,3 +1,32 @@
+/*
+ *@author  Victoria Carola Adolph
+ * @version 1.0
+ * @since   06.05.2024
+ * 
+ * Diese Klasse beinhaltet die Histogramm Ansicht. 
+ * Diese dient dazu die getesteten Laborwerte des Patienten in einem Diagramm zu veranschlichen 
+ * und diese auf eine bestimmte Zeitspanne miteinander vergleichen zu können.
+ * 
+ * Funktionen:
+ * - Kalender-Widgets zur Festlegung eines Start- und Enddatums für den Vergleich.
+ * - Schaltfläche zur Aktualisierung des Diagramms mit den ausgewählten Daten.
+ * - Liniendiagramm zur anschaulichen Darstellung von Laborergebnissen und deren Entwicklung.
+ * 
+ * Diese Klasse umfasst Methoden für:
+ * - Die Erstellung und Handhabung von Kalender-Widgets.
+ * - Die Reaktion auf Benutzeraktionen, wie Datumsauswahl und Diagrammaktualisierung.
+ * - Die Aktualisierung des Liniendiagramms anhand der gewählten Laborergebnisse.
+ * - Das Abrufen ausgewählter Ergebnisse zur Weiterverarbeitung.
+ * 
+ * Externe Komponenten:
+ * - SWT-Widgets wie Tree, Button und DateTime.
+ * - SWTChart für Diagramm-Visualisierung.
+ * - JFace TreeViewer für baumbasierte Darstellung.
+ * 
+ * @see ch.elexis.core.ui.laboratory.controls.model.LaborItemResults
+ * @see ch.elexis.data.LabResult
+ */
+
 package ch.elexis.core.ui.laboratory.controls;
 
 import java.text.FieldPosition;
@@ -18,8 +47,6 @@ import org.eclipse.swt.events.FocusAdapter;
 import org.eclipse.swt.events.FocusEvent;
 import org.eclipse.swt.events.MouseAdapter;
 import org.eclipse.swt.events.MouseEvent;
-import org.eclipse.swt.events.PaintEvent;
-import org.eclipse.swt.events.PaintListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.graphics.Color;
@@ -37,13 +64,11 @@ import org.eclipse.swtchart.ILineSeries;
 import org.eclipse.swtchart.ISeries;
 import org.eclipse.swtchart.ISeries.SeriesType;
 import org.eclipse.swtchart.ISeriesSet;
-import org.eclipse.ui.forms.widgets.Form;
 import org.eclipse.ui.forms.widgets.FormToolkit;
 
 import ch.elexis.core.ui.UiDesk;
 import ch.elexis.core.ui.laboratory.controls.model.LaborItemResults;
 import ch.elexis.data.LabResult;
-import ch.elexis.data.Patient;
 import ch.rgw.tools.TimeTool;
 
 public class LaborCompareComposite extends Composite {
@@ -56,28 +81,14 @@ public class LaborCompareComposite extends Composite {
 	private Button updateChartsButton;
 	private TreeViewer viewer;
 	private final FormToolkit tk = UiDesk.getToolkit();
-	private Form form;
 	private DateTime fromDate;
 	private DateTime toDate;
-	private Patient actPatient;
 	private TreeViewerFocusCellManager focusCell;
 	private List<LaborItemResults> selectedItems = new ArrayList<>();
-
 	private TreeViewerColumn newColumn;
-	private int newColumnIndex;
-
 	private List<TreeViewerColumn> resultColumns = new ArrayList<TreeViewerColumn>();
-
-	private LaborResultsContentProvider contentProvider2 = new LaborResultsContentProvider();
-
-	private int columnOffset = 0;
-
-	private boolean reloadPending;
-
-	private List<LaborItemResults> test66;
+	private List<LaborItemResults> Laborwert;
 	private Chart chart;
-
-	private static final int COLUMNS_PER_PAGE = 7;
 
 	public LaborCompareComposite(Composite parent, int style) {
 		super(parent, style);
@@ -97,6 +108,7 @@ public class LaborCompareComposite extends Composite {
 		createLineChart();
 
 	}
+
 //	CALENDAR---------------------------------------------------------------------------------------------------->
 
 	private void createCalendar(Composite parent) {
@@ -118,16 +130,13 @@ public class LaborCompareComposite extends Composite {
 				LocalDate currentDate = LocalDate.now();
 
 				if (from.isAfter(to)) {
-					// If fromDate is after toDate, reset fromDate to toDate
 					setDate(fromDate, to);
 					showMessage("Das Startdatum kann nicht später als das Enddatum sein.");
-					System.out.println("test1");
 
 				}
 				if (to.isAfter(currentDate)) {
 					setDate(toDate, currentDate);
 					showMessage("Das Enddatum kann nicht in der Zukunft liegen.");
-					System.out.println("test2");
 				}
 			}
 		});
@@ -141,13 +150,11 @@ public class LaborCompareComposite extends Composite {
 				if (from.isAfter(to)) {
 					setDate(fromDate, to);
 					showMessage("Das Startdatum kann nicht später als das Enddatum sein.");
-					System.out.println("test1");
 				}
 
 				if (to.isAfter(currentDate)) {
 					setDate(toDate, currentDate);
 					showMessage("Das Enddatum kann nicht in der Zukunft liegen.");
-					System.out.println("test2");
 				}
 			}
 		});
@@ -177,17 +184,8 @@ public class LaborCompareComposite extends Composite {
 		updateChartsButton.setText("Diagramm aktualisieren");
 		GridData gridData = new GridData(SWT.END, SWT.CENTER, false, false);
 		gridData.widthHint = 150;
-		gridData.heightHint = 24;
+		gridData.heightHint = 25;
 		updateChartsButton.setLayoutData(gridData);
-
-		updateChartsButton.addPaintListener(new PaintListener() {
-			@Override
-			public void paintControl(PaintEvent e) {
-				e.gc.setForeground(parent.getDisplay().getSystemColor(SWT.COLOR_BLACK));
-				e.gc.setLineWidth(1);
-				e.gc.drawRectangle(0, 0, updateChartsButton.getSize().x - 1, updateChartsButton.getSize().y - 1);
-			}
-		});
 
 		updateChartsButton.addSelectionListener(new SelectionAdapter() {
 			@Override
@@ -205,9 +203,8 @@ public class LaborCompareComposite extends Composite {
 
 	private void createLineChart() {
 		chart = new Chart(this, SWT.NONE);
-
 		chart.getTitle().setText(
-				"Aktuallisieren Sie die gewünschte Datumsspanne um Werte zu vergleichen.");
+				"Gewünschte Datumsspanne aktualisieren um Werte zu vergleichen.");
 		chart.getAxisSet().getXAxis(0).getTitle().setText("Datum");
 		chart.getAxisSet().getYAxis(0).getTitle().setText("Wert");
 
@@ -216,14 +213,12 @@ public class LaborCompareComposite extends Composite {
 			@Override
 			public void focusGained(FocusEvent e) {
 				updateChartData(selectedItems);
-				System.out.println("hallo");
 			}
 		});
 		chart.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseDown(MouseEvent e) {
 				if (e.button == SWT.BUTTON3) {
-					System.out.println("Rechtsklick im LaborCompareComposite erkannt.");
 				}
 			}
 		});
@@ -231,11 +226,7 @@ public class LaborCompareComposite extends Composite {
 	}
 
 	public void updateChartData(List<LaborItemResults> selectedItems2) {
-		System.out.println("test3");
-		System.out.println("chart " + chart);
-		System.out.println("selectedItems " + selectedItems);
 		if (chart != null && !selectedItems.isEmpty()) {
-			System.out.println("test4");
 			updateLineChartWithSelectedResults();
 		}
 	}
@@ -265,7 +256,6 @@ public class LaborCompareComposite extends Composite {
 						double value = Double.parseDouble(result.getResult());
 						pairs.add(new DateValuePair(date, value));
 					} catch (NumberFormatException e) {
-						System.out.println("Fehler beim Parsen des Wertes: " + result.getResult());
 					}
 				}
 			}
@@ -300,7 +290,9 @@ public class LaborCompareComposite extends Composite {
 				lineSeries.setSymbolColor(colors[colorIndex % colors.length]);
 				lineSeries.setLineColor(colors[colorIndex % colors.length]); 
 			}
-
+			chart.getAxisSet().getXAxis(0).enableCategory(true);
+			chart.getAxisSet().getXAxis(0).setCategorySeries(dateLabels);
+			chart.getAxisSet().getXAxis(0).getTick().setFormat(new LabelFormat());
 			colorIndex++;
 		}
 
@@ -327,21 +319,14 @@ public class LaborCompareComposite extends Composite {
 		return null;
 	}
 
-	private List<LaborItemResults> addSelectedItemToList(Object selectedItem) {
-		return selectedItems;
-	}
-
 	public void receiveSelectedResults(List<LaborItemResults> selectedResults) {
-		this.test66 = new ArrayList<>(selectedResults);
+		this.Laborwert = new ArrayList<>(selectedResults);
 		selectedItems.clear();
 		if (selectedResults != null) {
-			this.selectedItems.addAll(new ArrayList<>(test66));
+			this.selectedItems.addAll(new ArrayList<>(Laborwert));
 		}
-		System.out.println("Nach dem Hinzufügen: " + this.selectedItems);
-
 		updateChartData(selectedItems);
 	}
-
 
 	public String[] getPrintHeaders() {
 		ArrayList<String> ret = new ArrayList<String>();
@@ -374,8 +359,6 @@ public class LaborCompareComposite extends Composite {
 			getAllItems(children[i], allItems);
 		}
 	}
-
-
 
 	public List<LaborItemResults> setselectedItems(List<LaborItemResults> selectedItems) {
 		return selectedItems;
